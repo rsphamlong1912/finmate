@@ -171,7 +171,7 @@ export default function DashboardScreen() {
           {[
             { icon: '➕', label: 'Thêm', onPress: () => router.push('/add-expense') },
             { icon: '🎯', label: 'Mục tiêu', onPress: () => router.push('/(tabs)/goals') },
-            { icon: '📊', label: 'Thống kê', onPress: () => router.push('/(tabs)/stats') },
+            { icon: '📊', label: 'Báo cáo', onPress: () => router.push('/(tabs)/stats') },
             { icon: '👤', label: 'Cá nhân', onPress: () => router.push('/(tabs)/profile') },
           ].map(a => (
             <TouchableOpacity key={a.label} style={styles.actionBtn} onPress={a.onPress}>

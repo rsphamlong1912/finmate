@@ -223,20 +223,20 @@ export default function StatsScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View style={styles.headerCircle} />
-          <Text style={styles.headerTitle}>Thống kê 📊</Text>
-          <View style={styles.filterRow}>
-            {FILTERS.map(f => (
-              <TouchableOpacity key={f} style={[styles.filterTab, filter === f && styles.filterTabActive]} onPress={() => setFilter(f)}>
-                <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]}>{f}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      {/* HEADER - fixed */}
+      <View style={styles.header}>
+        <View style={styles.headerCircle} />
+        <Text style={styles.headerTitle}>Báo cáo 📊</Text>
+        <View style={styles.filterRow}>
+          {FILTERS.map(f => (
+            <TouchableOpacity key={f} style={[styles.filterTab, filter === f && styles.filterTabActive]} onPress={() => setFilter(f)}>
+              <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]}>{f}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* ── NGÀY ── */}
         {filter === 'Ngày' && (
@@ -298,12 +298,12 @@ export default function StatsScreen() {
                 <Text style={styles.sectionTitle}>Danh mục chiếm nhiều nhất</Text>
                 <View style={styles.chartCard}>
                   <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={180} height={180} colorScale={pieData.map(d => d.color)} innerRadius={50} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
+                    <VictoryPie data={pieData} width={200} height={200} colorScale={pieData.map(d => d.color)} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
                     <View style={styles.pieLegend}>
                       {pieData.map(d => (
                         <View key={d.category} style={styles.legendRow}>
                           <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName} numberOfLines={1}>{d.x}</Text>
+                          <Text style={styles.legendName}>{d.x}</Text>
                           <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
                           <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
                         </View>
@@ -418,12 +418,12 @@ export default function StatsScreen() {
                 <Text style={styles.sectionTitle}>Tiền đi đâu tháng này?</Text>
                 <View style={styles.chartCard}>
                   <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={180} height={180} colorScale={pieData.map(d => d.color)} innerRadius={50} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
+                    <VictoryPie data={pieData} width={200} height={200} colorScale={pieData.map(d => d.color)} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
                     <View style={styles.pieLegend}>
                       {pieData.map(d => (
                         <View key={d.category} style={styles.legendRow}>
                           <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName} numberOfLines={1}>{d.x}</Text>
+                          <Text style={styles.legendName}>{d.x}</Text>
                           <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
                           <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
                         </View>
@@ -534,13 +534,13 @@ const styles = StyleSheet.create({
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 15, fontWeight: '800', color: '#3b1f6e', marginBottom: 10 },
   chartCard: { backgroundColor: '#fff', borderRadius: 20, padding: 8, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3, alignItems: 'center' },
-  pieWrap: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
-  pieLegend: { flex: 1, gap: 8, paddingLeft: 8 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  legendName: { fontSize: 11, fontWeight: '600', color: '#3b1f6e', flex: 1 },
-  legendPct: { fontSize: 10, fontWeight: '800', color: '#6b4fa8', width: 28 },
-  legendAmt: { fontSize: 10, fontWeight: '700', color: '#9b8cc4', width: 44, textAlign: 'right' },
+  pieWrap: { flexDirection: 'column', alignItems: 'center', paddingVertical: 8, alignSelf: 'stretch' },
+  pieLegend: { alignSelf: 'stretch', gap: 8, paddingHorizontal: 12, paddingTop: 4 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  legendDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  legendName: { fontSize: 12, fontWeight: '600', color: '#3b1f6e', flex: 1 },
+  legendPct: { fontSize: 12, fontWeight: '800', color: '#6b4fa8', minWidth: 32, textAlign: 'right' },
+  legendAmt: { fontSize: 11, fontWeight: '700', color: '#9b8cc4', minWidth: 56, textAlign: 'right' },
   emptyChart: { height: 120, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 13, color: '#b0a3d4', fontWeight: '600' },
   empty: { alignItems: 'center', paddingVertical: 48 },

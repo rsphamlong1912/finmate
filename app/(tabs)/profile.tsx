@@ -213,7 +213,7 @@ export default function ProfileScreen() {
               {[
                 { icon: '📋', label: 'Lịch sử giao dịch', sub: 'Xem tất cả giao dịch', onPress: () => router.push('/(tabs)/transactions') },
                 { icon: '🎯', label: 'Mục tiêu tiết kiệm', sub: 'Quản lý mục tiêu', onPress: () => router.push('/(tabs)/goals') },
-                { icon: '📊', label: 'Thống kê chi tiêu', sub: 'Biểu đồ phân tích', onPress: () => router.push('/(tabs)/stats') },
+                { icon: '📊', label: 'Báo cáo', sub: 'Biểu đồ phân tích', onPress: () => router.push('/(tabs)/stats') },
                 { icon: '💬', label: 'Góp ý & Hỗ trợ', sub: 'Giúp chúng tôi cải thiện', onPress: () => {} },
               ].map((item, i, arr) => (
                 <TouchableOpacity
