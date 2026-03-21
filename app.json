@@ -1,18 +1,20 @@
 {
   "expo": {
-    "name": "ai-budget-coach",
-    "slug": "ai-budget-coach",
+    "name": "FinMate",
+    "slug": "finmate",
     "version": "1.0.0",
+    "scheme": "finmate",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/my-splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#1a0a3c"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.finmate"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,6 +27,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen",
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
