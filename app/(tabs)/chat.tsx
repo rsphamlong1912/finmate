@@ -11,6 +11,7 @@ import { useGoals } from '../../context/GoalsContext';
 import { useProfile } from '../../context/ProfileContext';
 import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/claude';
 import { supabase } from '../../lib/supabase';
+import { DEFAULT_CATEGORIES } from '../../types';
 
 type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; };
 
@@ -23,7 +24,7 @@ const QUICK_PROMPTS = [
 
 export default function ChatScreen() {
   const { user, session } = useAuth();
-  const { totalThisMonth, byCategory, expenses } = useExpenses(user?.id);
+  useExpenses(user?.id); // keep hook alive for other screens
   const { goals } = useGoals();
   const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([{
@@ -63,15 +64,40 @@ export default function ChatScreen() {
 
     const updated: Message[] = [...history, { role: 'user', content: text }];
     try {
+      // Fetch expenses + custom categories mới nhất
+      const [{ data: freshExpenses }, { data: customCats }] = await Promise.all([
+        supabase.from('expenses').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50),
+        supabase.from('user_categories').select('*').eq('user_id', user?.id),
+      ]);
+
+      const allCategories = [
+        ...DEFAULT_CATEGORIES,
+        ...(customCats ?? []).map((c: any) => ({ id: c.id, name: c.name, emoji: c.emoji, color: c.color, is_default: false })),
+      ];
+      const getCatName = (id: string) => allCategories.find(c => c.id === id)?.name ?? id;
+
+      const now = new Date();
+      const fresh = freshExpenses ?? [];
+      const thisMonth = fresh.filter(e => {
+        const d = new Date(e.created_at);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      const freshTotal = thisMonth.reduce((s, e) => s + e.amount, 0);
+      const freshByCategory = thisMonth.reduce<Record<string, number>>((acc, e) => {
+        const name = getCatName(e.category);
+        acc[name] = (acc[name] ?? 0) + e.amount;
+        return acc;
+      }, {});
+
       const ctx = buildFinancialContext({
-        totalThisMonth,
-        byCategory,
+        totalThisMonth: freshTotal,
+        byCategory: freshByCategory,
         budget: profile?.monthly_budget ?? 0,
         goals: goals.map(g => ({ title: g.title, saved: g.saved_amount, target: g.target_amount })),
         currency: '₫',
-        recentExpenses: expenses.slice(0, 20).map(e => ({
+        recentExpenses: fresh.slice(0, 20).map(e => ({
           note: e.note,
-          category: e.category,
+          category: getCatName(e.category),
           amount: e.amount,
           date: e.created_at,
         })),
@@ -95,7 +121,7 @@ export default function ChatScreen() {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [loading, history, totalThisMonth, byCategory, session, user, goals, profile]);
+  }, [loading, history, session, user, goals, profile]);
 
   return (
     <View style={styles.root}>

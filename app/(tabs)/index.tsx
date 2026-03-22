@@ -319,8 +319,8 @@ export default function DashboardScreen() {
                               <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.txCat} numberOfLines={1}>{e.note || catLabel.replace(/^\S+\s/, '')}</Text>
-                              <Text style={styles.txMeta}>{catLabel.replace(/^\S+\s/, '')} · {time}</Text>
+                              <Text style={styles.txCat} numberOfLines={1}>{e.note || catLabel}</Text>
+                              <Text style={styles.txMeta}>{catLabel} · {time}</Text>
                             </View>
                             <Text style={[styles.txAmt, { color }]}>-{formatVND(e.amount)}</Text>
                           </TouchableOpacity>
