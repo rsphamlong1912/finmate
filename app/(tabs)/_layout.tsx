@@ -2,6 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
+import { Fonts } from '../../constants/fonts';
 
 export default function TabsLayout() {
   const { session, loading } = useAuth();
@@ -24,6 +25,14 @@ export default function TabsLayout() {
         options={{
           tabBarIcon: ({ focused }) => (
             <TabItem icon={focused ? 'home' : 'home-outline'} label="Tổng quan" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="stats"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabItem icon={focused ? 'bar-chart' : 'bar-chart-outline'} label="Báo cáo" focused={focused} />
           ),
         }}
       />
@@ -54,7 +63,6 @@ export default function TabsLayout() {
 
       {/* Ẩn khỏi tab bar */}
       <Tabs.Screen name="transactions" options={{ href: null }} />
-      <Tabs.Screen name="stats" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -135,13 +143,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: '#c4b5fd',
     textAlign: 'center',
     width: '100%',
   },
   labelActive: {
     color: '#6b4fa8',
-    fontWeight: '800',
+    fontFamily: Fonts.extraBold,
   },
 });

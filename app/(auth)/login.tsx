@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useAuth } from '../../hooks/useAuth';
+import { Fonts } from '../../constants/fonts';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -158,11 +159,11 @@ const styles = StyleSheet.create({
   },
   logoIcon: { fontSize: 40 },
   appName: {
-    fontSize: 34, fontWeight: '900', color: '#3b1f6e',
+    fontSize: 34, fontFamily: Fonts.extraBold, color: '#3b1f6e',
     letterSpacing: -1.5, marginBottom: 8,
   },
   tagline: {
-    fontSize: 15, color: '#9b8cc4', fontWeight: '500',
+    fontSize: 15, color: '#9b8cc4', fontFamily: Fonts.medium,
     textAlign: 'center', lineHeight: 22,
   },
 
@@ -171,15 +172,15 @@ const styles = StyleSheet.create({
     shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.1, shadowRadius: 24, elevation: 10,
   },
-  formTitle: { fontSize: 22, fontWeight: '900', color: '#3b1f6e', marginBottom: 4 },
-  formSub: { fontSize: 13, color: '#b0a3d4', fontWeight: '500', marginBottom: 24 },
+  formTitle: { fontSize: 22, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 4 },
+  formSub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium, marginBottom: 24 },
 
   inputWrap: { marginBottom: 16 },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#6b4fa8', marginBottom: 6 },
+  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 6 },
   input: {
     backgroundColor: '#f5f3ff', borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#3b1f6e', fontWeight: '600',
+    fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.semiBold,
     borderWidth: 2, borderColor: '#e4dff5',
   },
 
@@ -191,14 +192,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  submitText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
 
   switchBtn: { alignItems: 'center' },
-  switchText: { fontSize: 13, color: '#b0a3d4', fontWeight: '500' },
-  switchLink: { color: '#6b4fa8', fontWeight: '800' },
+  switchText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+  switchLink: { color: '#6b4fa8', fontFamily: Fonts.extraBold },
 
   footer: {
     textAlign: 'center', fontSize: 12,
-    color: '#c4b5fd', fontWeight: '600', marginTop: 24,
+    color: '#c4b5fd', fontFamily: Fonts.semiBold, marginTop: 24,
   },
 });

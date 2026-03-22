@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform, ScrollView
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../hooks/useExpenses';
 import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/claude';
 import { supabase } from '../../lib/supabase';
@@ -69,7 +70,7 @@ export default function ChatScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrap}>
-            <Text style={{ fontSize: 24 }}>🤖</Text>
+            <Text style={{ fontSize: 24 }}>💬</Text>
           </View>
           <View>
             <Text style={styles.headerTitle}>FinMate</Text>
@@ -80,7 +81,8 @@ export default function ChatScreen() {
           </View>
         </View>
         <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>Claude AI</Text>
+          <Text style={styles.headerBadgeIcon}>✦</Text>
+          <Text style={styles.headerBadgeText}>Trợ lý tài chính</Text>
         </View>
       </View>
 
@@ -106,7 +108,7 @@ export default function ChatScreen() {
             ]}>
               {msg.role === 'assistant' && (
                 <View style={styles.bubbleAvatar}>
-                  <Text style={{ fontSize: 14 }}>🤖</Text>
+                  <Text style={{ fontSize: 14 }}>💬</Text>
                 </View>
               )}
               <View style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
@@ -123,7 +125,7 @@ export default function ChatScreen() {
           {loading && (
             <View style={[styles.bubbleWrap, styles.bubbleWrapAI]}>
               <View style={styles.bubbleAvatar}>
-                <Text style={{ fontSize: 14 }}>🤖</Text>
+                <Text style={{ fontSize: 14 }}>💬</Text>
               </View>
               <View style={[styles.bubble, styles.bubbleAI, { paddingHorizontal: 20 }]}>
                 <ActivityIndicator size="small" color="#6b4fa8" />
@@ -189,15 +191,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  headerTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
-  statusText: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  statusText: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontFamily: Fonts.semiBold },
   headerBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)',
+    borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  headerBadgeText: { fontSize: 11, color: '#fff', fontWeight: '700' },
+  headerBadgeIcon: { fontSize: 10, color: '#c4b5fd' },
+  headerBadgeText: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontFamily: Fonts.semiBold, letterSpacing: 0.3 },
 
   messages: { flex: 1 },
   messagesContent: { padding: 16, gap: 12, paddingBottom: 8 },
@@ -219,11 +224,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
   },
   bubbleText: { fontSize: 14, lineHeight: 22 },
-  bubbleTextUser: { color: '#fff', fontWeight: '600' },
-  bubbleTextAI: { color: '#3b1f6e', fontWeight: '500' },
+  bubbleTextUser: { color: '#fff', fontFamily: Fonts.semiBold },
+  bubbleTextAI: { color: '#3b1f6e', fontFamily: Fonts.medium },
 
   quickWrap: { marginTop: 8, gap: 8 },
-  quickLabel: { fontSize: 12, fontWeight: '700', color: '#b0a3d4', marginBottom: 4 },
+  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#b0a3d4', marginBottom: 4 },
   quickBtn: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -231,8 +236,8 @@ const styles = StyleSheet.create({
     shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  quickText: { fontSize: 13, color: '#3b1f6e', fontWeight: '700', flex: 1 },
-  quickArrow: { fontSize: 16, color: '#6b4fa8', fontWeight: '700' },
+  quickText: { fontSize: 13, color: '#3b1f6e', fontFamily: Fonts.bold, flex: 1 },
+  quickArrow: { fontSize: 16, color: '#6b4fa8', fontFamily: Fonts.bold },
 
   inputArea: {
     backgroundColor: '#fff',
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1, backgroundColor: '#f5f3ff', borderRadius: 16,
     paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 14, color: '#3b1f6e', fontWeight: '600',
+    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.semiBold,
     maxHeight: 100, borderWidth: 2, borderColor: '#e4dff5',
   },
   sendBtn: {
@@ -256,5 +261,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
   },
   sendDisabled: { backgroundColor: '#d4c9f0' },
-  sendIcon: { color: '#fff', fontSize: 20, fontWeight: '900' },
+  sendIcon: { color: '#fff', fontSize: 20, fontFamily: Fonts.extraBold },
 });

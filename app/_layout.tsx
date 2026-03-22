@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJakartaSans_600SemiBold, PlusJakartaSans_700Bold, PlusJakartaSans_800ExtraBold } from '@expo-google-fonts/plus-jakarta-sans';
 import { ProfileProvider } from '../context/ProfileContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { GoalsProvider } from '../context/GoalsContext';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,8 +30,21 @@ function RootNavigator() {
       return;
     }
 
-    AsyncStorage.getItem(`onboarding_done_${session.user.id}`).then(val => {
-      setOnboardingDone(val === 'true');
+    const key = `onboarding_done_${session.user.id}`;
+    AsyncStorage.getItem(key).then(async val => {
+      if (val === 'true') {
+        setOnboardingDone(true);
+      } else {
+        // Fallback: kiểm tra Supabase — nếu đã có display_name thì đã onboarding
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', session.user.id)
+          .single();
+        const done = !!data?.display_name;
+        if (done) await AsyncStorage.setItem(key, 'true');
+        setOnboardingDone(done);
+      }
     });
 
     return () => { _markOnboardingDone = null; };
@@ -66,9 +81,19 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
   useEffect(() => {
-    SplashScreen.hideAsync();
-  }, []);
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
 
   return (
     <ProfileProvider>

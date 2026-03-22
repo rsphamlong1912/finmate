@@ -4,6 +4,7 @@ import {
   StyleSheet, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Fonts } from '../constants/fonts';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../hooks/useAuth';
 import { parseVND, formatVND } from '../lib/vnd';
@@ -241,8 +242,8 @@ const styles = StyleSheet.create({
   circle2: { position: 'absolute', bottom: -40, left: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
 
   bigIcon: { fontSize: 60, marginBottom: 14 },
-  mainTitle: { fontSize: 28, fontWeight: '900', color: '#fff', textAlign: 'center', lineHeight: 34, marginBottom: 10, letterSpacing: -0.5 },
-  mainSub: { fontSize: 15, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+  mainTitle: { fontSize: 28, fontFamily: Fonts.extraBold, color: '#fff', textAlign: 'center', lineHeight: 34, marginBottom: 10, letterSpacing: -0.5 },
+  mainSub: { fontSize: 15, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, fontFamily: Fonts.medium },
 
   amountRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -251,9 +252,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
     width: '100%', marginTop: 16,
   },
-  amountInput: { fontSize: 26, fontWeight: '900', color: '#fff', flex: 1 },
-  amountCurrency: { fontSize: 18, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
-  amountPreview: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 8 },
+  amountInput: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', flex: 1 },
+  amountCurrency: { fontSize: 18, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.6)' },
+  amountPreview: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold, marginTop: 8 },
 
   body: { flex: 1, backgroundColor: '#eeeaf8', padding: 24, paddingTop: 20 },
 
@@ -269,16 +270,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   featIcon: { fontSize: 26 },
-  featText: { fontSize: 15, fontWeight: '700', color: '#3b1f6e' },
+  featText: { fontSize: 15, fontFamily: Fonts.bold, color: '#3b1f6e' },
 
-  inputLabel: { fontSize: 13, fontWeight: '700', color: '#6b4fa8', marginBottom: 8 },
+  inputLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8 },
   input: {
     backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    fontSize: 20, color: '#3b1f6e', fontWeight: '700',
+    fontSize: 20, color: '#3b1f6e', fontFamily: Fonts.bold,
     borderWidth: 2, borderColor: '#e4dff5', marginBottom: 20,
   },
 
-  quickLabel: { fontSize: 12, fontWeight: '700', color: '#9b8cc4', marginBottom: 10 },
+  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4', marginBottom: 10 },
   quickScroll: { marginBottom: 20 },
   quickRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   quickBtn: {
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     height: 42, justifyContent: 'center',
   },
   quickBtnActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  quickBtnText: { fontSize: 14, fontWeight: '700', color: '#6b4fa8' },
+  quickBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: '#6b4fa8' },
   quickBtnTextActive: { color: '#fff' },
 
   summaryCard: {
@@ -299,7 +300,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   summaryIcon: { fontSize: 22 },
-  summaryText: { fontSize: 15, fontWeight: '600', color: '#3b1f6e' },
+  summaryText: { fontSize: 15, fontFamily: Fonts.semiBold, color: '#3b1f6e' },
 
   nextBtn: {
     backgroundColor: '#6b4fa8', borderRadius: 18, paddingVertical: 17,
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3,
     shadowRadius: 14, elevation: 8, marginBottom: 12,
   },
-  nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  nextBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
   skipBtn: { alignItems: 'center', paddingVertical: 10 },
-  skipText: { fontSize: 13, color: '#b0a3d4', fontWeight: '600' },
+  skipText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
 });

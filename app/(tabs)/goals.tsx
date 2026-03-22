@@ -4,6 +4,7 @@ import {
   TextInput, Alert, Modal, Platform
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Fonts } from '../../constants/fonts';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useGoals } from '../../context/GoalsContext';
 import { formatVND, parseVND } from '../../lib/vnd';
@@ -126,23 +127,21 @@ export default function GoalsScreen() {
                   onLongPress={() => handleDelete(goal.id, goal.title)}
                   activeOpacity={0.85}
                 >
-                  <View style={styles.goalTop}>
+                  {/* Row 1: title + saved/target */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <View style={{ flex: 1 }}>
-                      <View style={styles.goalTitleRow}>
-                        <Text style={styles.goalTitle}>{goal.title}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.goalTitle} numberOfLines={1}>{goal.title}</Text>
                         {done && (
                           <View style={styles.doneBadge}>
-                            <Text style={styles.doneBadgeText}>✓ Xong</Text>
+                            <Text style={styles.doneBadgeText}>✓</Text>
                           </View>
                         )}
                       </View>
                       {goal.deadline && (
                         <Text style={styles.goalDeadline}>
-                          🗓 Hạn: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                          🗓 {new Date(goal.deadline).toLocaleDateString('vi-VN')}
                         </Text>
-                      )}
-                      {!done && (
-                        <Text style={styles.goalRemain}>Còn thiếu {formatVND(remaining)}</Text>
                       )}
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -151,12 +150,14 @@ export default function GoalsScreen() {
                     </View>
                   </View>
 
+                  {/* Progress bar */}
                   <View style={styles.barTrack}>
                     <View style={[styles.barFill, { width: `${pct}%` as any }, done && styles.barFillDone]} />
                   </View>
 
-                  <View style={styles.goalBottom}>
-                    <Text style={styles.pctLabel}>{Math.round(pct)}% hoàn thành</Text>
+                  {/* Row 3: pct + button */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                    <Text style={styles.pctLabel}>{Math.round(pct)}% {done ? '🎉' : `· còn ${formatVND(remaining)}`}</Text>
                     {!done && (
                       <TouchableOpacity
                         style={styles.addBtn}
@@ -228,7 +229,7 @@ export default function GoalsScreen() {
 
             <Text style={styles.inputLabel}>Hạn chót (tùy chọn)</Text>
             <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: deadline ? '#3b1f6e' : '#c4b5fd' }}>
+              <Text style={{ fontSize: 16, fontFamily: Fonts.semiBold, color: deadline ? '#3b1f6e' : '#c4b5fd' }}>
                 {deadline
                   ? new Date(deadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
                   : 'Chọn ngày...'}
@@ -294,7 +295,7 @@ export default function GoalsScreen() {
 
             <Text style={styles.inputLabel}>Số tiền thêm vào (₫)</Text>
             <TextInput
-              style={[styles.input, { fontSize: 28, fontWeight: '900', textAlign: 'center', paddingVertical: 20 }]}
+              style={[styles.input, { fontSize: 28, fontFamily: Fonts.extraBold, textAlign: 'center', paddingVertical: 20 }]}
               value={addInput}
               onChangeText={setAddInput}
               placeholder="VD: 500k, 1tr"
@@ -334,39 +335,35 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden',
   },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.08)' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 16 },
   summaryCard: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: 16 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  summaryLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: 4 },
-  summaryAmt: { fontSize: 20, fontWeight: '900', color: '#fff' },
+  summaryLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.semiBold, marginBottom: 4 },
+  summaryAmt: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#fff' },
   totalBar: { backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 99, height: 8, overflow: 'hidden', marginBottom: 8 },
   totalFill: { height: 8, borderRadius: 99, backgroundColor: '#fff' },
-  summaryPct: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '700' },
+  summaryPct: { fontSize: 12, color: 'rgba(255,255,255,0.8)', fontFamily: Fonts.bold },
 
   scroll: { flex: 1, backgroundColor: '#eeeaf8' },
   scrollContent: { padding: 20 },
 
   goalCard: {
-    backgroundColor: '#fff', borderRadius: 24, padding: 20, marginBottom: 14,
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1, shadowRadius: 16, elevation: 5,
+    backgroundColor: '#fff', borderRadius: 20, padding: 14, marginBottom: 10,
+    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08, shadowRadius: 10, elevation: 3,
   },
-  goalTop: { flexDirection: 'row', marginBottom: 16 },
-  goalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' },
-  goalTitle: { fontSize: 16, fontWeight: '800', color: '#3b1f6e', flex: 1 },
-  doneBadge: { backgroundColor: '#4ade80', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3 },
-  doneBadgeText: { fontSize: 10, color: '#fff', fontWeight: '800' },
-  goalDeadline: { fontSize: 12, color: '#b0a3d4', fontWeight: '600', marginBottom: 2 },
-  goalRemain: { fontSize: 12, color: '#9b8cc4', fontWeight: '600' },
-  goalSaved: { fontSize: 16, fontWeight: '900', color: '#3b1f6e' },
-  goalTarget: { fontSize: 12, color: '#b0a3d4', fontWeight: '600' },
-  barTrack: { backgroundColor: '#f0edfb', borderRadius: 99, height: 8, overflow: 'hidden', marginBottom: 12 },
-  barFill: { height: 8, borderRadius: 99, backgroundColor: '#6b4fa8' },
+  goalTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e', flex: 1 },
+  doneBadge: { backgroundColor: '#4ade80', borderRadius: 99, paddingHorizontal: 6, paddingVertical: 2 },
+  doneBadgeText: { fontSize: 9, color: '#fff', fontFamily: Fonts.extraBold },
+  goalDeadline: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.semiBold, marginTop: 2 },
+  goalSaved: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  goalTarget: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  barTrack: { backgroundColor: '#f0edfb', borderRadius: 99, height: 6, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 99, backgroundColor: '#6b4fa8' },
   barFillDone: { backgroundColor: '#4ade80' },
-  goalBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  pctLabel: { fontSize: 13, color: '#9b8cc4', fontWeight: '700' },
-  addBtn: { backgroundColor: '#6b4fa8', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  pctLabel: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
+  addBtn: { backgroundColor: '#6b4fa8', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
+  addBtnText: { color: '#fff', fontSize: 12, fontFamily: Fonts.extraBold },
 
   addGoalFloating: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -379,38 +376,38 @@ const styles = StyleSheet.create({
     shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
-  addGoalBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  addGoalBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
 
   empty: { alignItems: 'center', paddingVertical: 60 },
-  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#3b1f6e', marginBottom: 8 },
-  emptySub: { fontSize: 14, color: '#b0a3d4', fontWeight: '500', textAlign: 'center', marginBottom: 24 },
+  emptyTitle: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8 },
+  emptySub: { fontSize: 14, color: '#b0a3d4', fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 24 },
   emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14 },
-  emptyBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  emptyBtnText: { color: '#fff', fontSize: 15, fontFamily: Fonts.extraBold },
 
   modal: { flex: 1, backgroundColor: '#eeeaf8' },
   modalHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0edfb',
   },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#3b1f6e' },
-  modalCancel: { fontSize: 15, color: '#b0a3d4', fontWeight: '600' },
-  modalSave: { fontSize: 15, color: '#6b4fa8', fontWeight: '900' },
+  modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  modalCancel: { fontSize: 15, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  modalSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
 
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#6b4fa8', marginBottom: 8, marginTop: 16 },
-  input: { backgroundColor: '#fff', borderRadius: 16, padding: 14, fontSize: 16, color: '#3b1f6e', fontWeight: '600', borderWidth: 2, borderColor: '#e4dff5' },
-  inputPreview: { fontSize: 13, color: '#6b4fa8', fontWeight: '700', marginTop: 6 },
+  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8, marginTop: 16 },
+  input: { backgroundColor: '#fff', borderRadius: 16, padding: 14, fontSize: 16, color: '#3b1f6e', fontFamily: Fonts.semiBold, borderWidth: 2, borderColor: '#e4dff5' },
+  inputPreview: { fontSize: 13, color: '#6b4fa8', fontFamily: Fonts.bold, marginTop: 6 },
 
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   suggestionBtn: { backgroundColor: '#fff', borderRadius: 99, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 2, borderColor: '#e4dff5' },
-  suggestionText: { fontSize: 13, color: '#6b4fa8', fontWeight: '700' },
+  suggestionText: { fontSize: 13, color: '#6b4fa8', fontFamily: Fonts.bold },
 
   goalPreview: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 8, borderWidth: 2, borderColor: '#e4dff5' },
-  goalPreviewTitle: { fontSize: 16, fontWeight: '800', color: '#6b4fa8', marginBottom: 4 },
-  goalPreviewSub: { fontSize: 13, color: '#b0a3d4', fontWeight: '600' },
+  goalPreviewTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#6b4fa8', marginBottom: 4 },
+  goalPreviewSub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
 
   quickAmounts: { flexDirection: 'row', gap: 10, marginTop: 16 },
   quickAmtBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: '#e4dff5' },
   quickAmtBtnActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  quickAmtText: { fontSize: 15, color: '#6b4fa8', fontWeight: '800' },
+  quickAmtText: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
   quickAmtTextActive: { color: '#fff' },
 });

@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Alert, Switch, TextInput, Modal
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
 import { formatVND, parseVND } from '../../lib/vnd';
@@ -76,10 +77,10 @@ export default function ProfileScreen() {
               <Text style={styles.avatarText}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.displayName}>{displayName}</Text>
+              <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
               <Text style={styles.email} numberOfLines={1}>{user?.email}</Text>
               <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>✦ Gói miễn phí · Chỉnh tên →</Text>
+                <Text style={styles.freeBadgeText}>✦ Gói miễn phí</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -277,72 +278,72 @@ const styles = StyleSheet.create({
   header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
   headerCircle2: { position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.04)' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 20 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
   avatarCard: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   avatarCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#6b4fa8', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' },
-  avatarText: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  displayName: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  avatarText: { fontSize: 22, fontFamily: Fonts.extraBold, color: '#fff' },
+  displayName: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 2 },
   email: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 6 },
   freeBadge: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'flex-start' },
-  freeBadgeText: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: '700' },
+  freeBadgeText: { fontSize: 10, color: 'rgba(255,255,255,0.8)', fontFamily: Fonts.bold },
 
   statsRow: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 20, marginTop: -18, borderRadius: 20, paddingVertical: 16, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 8, zIndex: 10 },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  statNum: { fontSize: 14, fontWeight: '900', color: '#3b1f6e', marginBottom: 3 },
-  statLabel: { fontSize: 9, color: '#9b8cc4', fontWeight: '600', textAlign: 'center' },
+  statNum: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 3 },
+  statLabel: { fontSize: 9, color: '#9b8cc4', fontFamily: Fonts.semiBold, textAlign: 'center' },
   statDivider: { width: 1, backgroundColor: '#e4dff5', marginVertical: 8 },
 
   body: { paddingHorizontal: 20, paddingTop: 20 },
   upgradeBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#3b1f6e', borderRadius: 20, padding: 16, marginBottom: 20, shadowColor: '#1a0a3c', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 6 },
   upgradeIcon: { fontSize: 28 },
-  upgradeTitle: { fontSize: 15, fontWeight: '900', color: '#fff', marginBottom: 2 },
-  upgradeSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
-  upgradeArrow: { fontSize: 22, color: 'rgba(255,255,255,0.6)', fontWeight: '700' },
+  upgradeTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 2 },
+  upgradeSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.semiBold },
+  upgradeArrow: { fontSize: 22, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.bold },
 
   section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#3b1f6e', marginBottom: 12 },
+  sectionTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 12 },
 
   budgetCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   pillsRow: { flexDirection: 'row', gap: 7, marginBottom: 12 },
   pill: { flex: 1, backgroundColor: '#f0edfb', borderRadius: 99, paddingVertical: 9, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   pillActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  pillText: { fontSize: 13, fontWeight: '700', color: '#6b4fa8' },
+  pillText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
   pillTextActive: { color: '#fff' },
   divider: { height: 1, backgroundColor: '#f0edfb', marginBottom: 12 },
   customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f8f6ff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 2, borderColor: '#e4dff5', marginBottom: 8 },
   customRowActive: { borderColor: '#6b4fa8', backgroundColor: '#f0edfb' },
   customIcon: { fontSize: 14 },
-  customInput: { flex: 1, fontSize: 15, fontWeight: '700', color: '#3b1f6e', padding: 0 },
-  customCur: { fontSize: 13, color: '#9b8cc4', fontWeight: '700' },
+  customInput: { flex: 1, fontSize: 15, fontFamily: Fonts.bold, color: '#3b1f6e', padding: 0 },
+  customCur: { fontSize: 13, color: '#9b8cc4', fontFamily: Fonts.bold },
   customSaveBtn: { backgroundColor: '#6b4fa8', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
-  customSaveText: { fontSize: 12, fontWeight: '800', color: '#fff' },
-  customPreview: { fontSize: 12, color: '#6b4fa8', fontWeight: '700', marginBottom: 6, paddingLeft: 4 },
-  budgetCurrent: { fontSize: 11, color: '#9b8cc4', fontWeight: '600' },
+  customSaveText: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#fff' },
+  customPreview: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.bold, marginBottom: 6, paddingLeft: 4 },
+  budgetCurrent: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
 
   settingCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   settingRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   settingIcon: { fontSize: 22 },
-  settingLabel: { fontSize: 14, fontWeight: '700', color: '#3b1f6e', marginBottom: 2 },
-  settingSub: { fontSize: 11, color: '#b0a3d4', fontWeight: '500' },
+  settingLabel: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
+  settingSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
   settingDivider: { height: 1, backgroundColor: '#f5f3ff', marginHorizontal: 16 },
 
   menuCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   menuBorder: { borderBottomWidth: 1, borderBottomColor: '#f5f3ff' },
   menuIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f0edfb', alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { fontSize: 14, fontWeight: '700', color: '#3b1f6e', marginBottom: 2 },
-  menuSub: { fontSize: 11, color: '#b0a3d4', fontWeight: '500' },
-  menuArrow: { fontSize: 20, color: '#c4b5fd', fontWeight: '700' },
+  menuLabel: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
+  menuSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  menuArrow: { fontSize: 20, color: '#c4b5fd', fontFamily: Fonts.bold },
 
   signOutBtn: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#f0edfb' },
-  signOutText: { fontSize: 15, fontWeight: '800', color: '#E24B4A' },
-  version: { textAlign: 'center', fontSize: 12, color: '#c4b5fd', fontWeight: '500' },
+  signOutText: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#E24B4A' },
+  version: { textAlign: 'center', fontSize: 12, color: '#c4b5fd', fontFamily: Fonts.medium },
 
   modal: { flex: 1, backgroundColor: '#eeeaf8' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0edfb' },
-  modalTitle: { fontSize: 17, fontWeight: '800', color: '#3b1f6e' },
-  modalCancel: { fontSize: 15, color: '#b0a3d4', fontWeight: '600' },
-  modalSave: { fontSize: 15, color: '#6b4fa8', fontWeight: '900' },
-  inputLabel: { fontSize: 12, fontWeight: '700', color: '#6b4fa8', marginBottom: 8 },
-  nameInput: { backgroundColor: '#fff', borderRadius: 16, padding: 16, fontSize: 18, color: '#3b1f6e', fontWeight: '700', borderWidth: 2, borderColor: '#e4dff5' },
+  modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  modalCancel: { fontSize: 15, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  modalSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
+  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8 },
+  nameInput: { backgroundColor: '#fff', borderRadius: 16, padding: 16, fontSize: 18, color: '#3b1f6e', fontFamily: Fonts.bold, borderWidth: 2, borderColor: '#e4dff5' },
 });

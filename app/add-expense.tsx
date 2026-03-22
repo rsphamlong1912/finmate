@@ -6,6 +6,7 @@ import {
 import { KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../hooks/useAuth';
+import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
 import { ExpenseCategory } from '../types';
 import { formatVND, parseVND } from '../lib/vnd';
@@ -171,17 +172,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
   backBtn: { marginBottom: 10 },
-  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 20 },
+  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
+  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
 
   amountRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   amountInput: {
-    fontSize: 44, fontWeight: '900', color: '#fff',
+    fontSize: 44, fontFamily: Fonts.extraBold, color: '#fff',
     flex: 1, letterSpacing: -1, padding: 0,
   },
-  currency: { fontSize: 24, fontWeight: '900', color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
-  amountPreview: { fontSize: 14, color: '#c4b5fd', fontWeight: '700', marginBottom: 4 },
-  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '500', marginBottom: 14 },
+  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
+  amountPreview: { fontSize: 14, color: '#c4b5fd', fontFamily: Fonts.bold, marginBottom: 4 },
+  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.medium, marginBottom: 14 },
 
   quickRow: { flexDirection: 'row', gap: 7, paddingBottom: 4 },
   quickBtn: {
@@ -189,21 +190,21 @@ const styles = StyleSheet.create({
     borderRadius: 99, paddingHorizontal: 14, paddingVertical: 7,
   },
   quickBtnActive: { backgroundColor: '#fff' },
-  quickBtnText: { fontSize: 12, color: '#fff', fontWeight: '800' },
+  quickBtnText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
   quickBtnTextActive: { color: '#3b1f6e' },
 
   /* BODY */
   body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
 
   sectionLabel: {
-    fontSize: 13, fontWeight: '800', color: '#3b1f6e',
+    fontSize: 13, fontFamily: Fonts.extraBold, color: '#3b1f6e',
     marginBottom: 10, marginTop: 4,
   },
 
   noteInput: {
     backgroundColor: '#fff', borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 13,
-    fontSize: 14, color: '#3b1f6e', fontWeight: '500',
+    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.medium,
     borderWidth: 1.5, borderColor: '#e4dff5',
     marginBottom: 20,
   },
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6b4fa8', borderColor: '#6b4fa8',
   },
   pillIcon: { fontSize: 16 },
-  pillLabel: { fontSize: 13, fontWeight: '700', color: '#6b4fa8' },
+  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
   pillLabelActive: { color: '#fff' },
 
   /* SAVE */
@@ -235,5 +236,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
   },
   saveBtnDisabled: { opacity: 0.45 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  saveBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
 });

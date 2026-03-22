@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryLine, VictoryTheme, VictoryArea } from 'victory-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
+import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryLine, VictoryTheme, VictoryArea, VictoryLabel } from 'victory-native';
+import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
 import { formatVNDShort, formatVND } from '../../lib/vnd';
@@ -110,6 +111,7 @@ export default function StatsScreen() {
   const { expenses } = useExpenses();
   const { profile } = useProfile();
   const [filter, setFilter] = useState('Ngày');
+  const [showDayDetail, setShowDayDetail] = useState(false);
 
   const [now, setNow] = useState(() => new Date());
   const todayStr = toLocalDateStr(now);
@@ -226,7 +228,7 @@ export default function StatsScreen() {
       {/* HEADER - fixed */}
       <View style={styles.header}>
         <View style={styles.headerCircle} />
-        <Text style={styles.headerTitle}>Báo cáo 📊</Text>
+        <Text style={styles.headerTitle}>Báo cáo chi tiêu</Text>
         <View style={styles.filterRow}>
           {FILTERS.map(f => (
             <TouchableOpacity key={f} style={[styles.filterTab, filter === f && styles.filterTabActive]} onPress={() => setFilter(f)}>
@@ -247,7 +249,15 @@ export default function StatsScreen() {
               <View style={styles.dayTrack}>
                 <View style={[styles.dayFill, { width: `${Math.min(periodBudget > 0 ? (total / periodBudget) * 100 : 0, 100)}%` as any, backgroundColor: total > periodBudget ? '#ef4444' : '#6b4fa8' }]} />
               </View>
-              <Text style={styles.dayRemain}>🧾 {filtered.length} giao dịch hôm nay</Text>
+              <TouchableOpacity
+                onPress={() => filtered.length > 0 && setShowDayDetail(true)}
+                style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.dayRemain, filtered.length > 0 && styles.dayRemainActive]}>
+                  🧾 {filtered.length} giao dịch hôm nay{filtered.length > 0 ? ' →' : ''}
+                </Text>
+              </TouchableOpacity>
             </View>
             <DayCompareCard expenses={expenses} total={total} />
             {pieData.length > 0 ? (
@@ -285,10 +295,22 @@ export default function StatsScreen() {
                 {weekBarData.every(d => d.y === 0) ? (
                   <View style={styles.emptyChart}><Text style={styles.emptyText}>Chưa có dữ liệu tuần này</Text></View>
                 ) : (
-                  <VictoryChart width={width - 64} height={200} theme={VictoryTheme.material} domainPadding={{ x: 16 }} padding={{ top: 20, bottom: 36, left: 48, right: 16 }}>
+                  <VictoryChart width={width - 64} height={230} theme={VictoryTheme.material} domainPadding={{ x: 16 }} padding={{ top: 36, bottom: 36, left: 48, right: 16 }}>
                     <VictoryAxis style={{ axis: { stroke: '#e4dff5' }, tickLabels: { fontSize: 10, fill: '#9b8cc4', fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
                     <VictoryAxis dependentAxis tickFormat={t => `${t}k`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: '#9b8cc4', fontFamily: 'System' }, grid: { stroke: '#f0edfb', strokeDasharray: '4' } }} />
-                    <VictoryBar data={weekBarData} style={{ data: { fill: ({ datum }) => peakDay && datum.x === peakDay.x ? '#ef4444' : '#6b4fa8' } }} cornerRadius={{ top: 6 }} animate={{ duration: 500, onLoad: { duration: 500 } }} />
+                    <VictoryBar
+                      data={weekBarData}
+                      style={{ data: { fill: ({ datum }) => peakDay && datum.x === peakDay.x ? '#ef4444' : '#6b4fa8' } }}
+                      cornerRadius={{ top: 6 }}
+                      animate={{ duration: 500, onLoad: { duration: 500 } }}
+                      labels={({ datum }) => datum.y > 0 ? `${datum.y}k` : ''}
+                      labelComponent={
+                        <VictoryLabel
+                          dy={-4}
+                          style={{ fontSize: 9, fill: '#6b4fa8', fontFamily: 'System', fontWeight: '700' }}
+                        />
+                      }
+                    />
                   </VictoryChart>
                 )}
               </View>
@@ -441,6 +463,43 @@ export default function StatsScreen() {
         )}
 
       </ScrollView>
+
+      {/* ── Modal chi tiết giao dịch hôm nay ── */}
+      <Modal visible={showDayDetail} transparent animationType="slide" onRequestClose={() => setShowDayDetail(false)}>
+        <View style={styles.modalContainer}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowDayDetail(false)} />
+          <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Giao dịch hôm nay</Text>
+            <TouchableOpacity onPress={() => setShowDayDetail(false)}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {[...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(e => {
+              const cat = CATEGORY_LABELS[e.category as keyof typeof CATEGORY_LABELS] ?? e.category;
+              const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+              const color = CAT_COLORS[e.category] ?? '#6b7280';
+              return (
+                <View key={e.id} style={styles.modalItem}>
+                  <View style={[styles.modalItemIcon, { backgroundColor: color + '1a' }]}>
+                    <Text style={{ fontSize: 20 }}>
+                      {CATEGORY_LABELS[e.category as keyof typeof CATEGORY_LABELS]?.match(/^\S+/)?.[0] ?? '💸'}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || cat.replace(/^\S+\s/, '')}</Text>
+                    <Text style={styles.modalItemCat}>{cat.replace(/^\S+\s/, '')} · {time}</Text>
+                  </View>
+                  <Text style={[styles.modalItemAmt, { color }]}>-{formatVNDShort(e.amount)}</Text>
+                </View>
+              );
+            })}
+          </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -449,48 +508,52 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3b1f6e' },
   header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 20, paddingHorizontal: 24, overflow: 'hidden' },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 16 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterTab: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
   filterTabActive: { backgroundColor: '#fff' },
-  filterTabText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.6)' },
+  filterTabText: { fontSize: 13, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.6)' },
   filterTabTextActive: { color: '#3b1f6e' },
 
   /* ── NGÀY ── */
   dayBody: { backgroundColor: '#eeeaf8', padding: 20 },
   dayMainCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 12, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
-  dayLbl: { fontSize: 11, fontWeight: '700', color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  dayAmt: { fontSize: 34, fontWeight: '900', color: '#3b1f6e', letterSpacing: -1.5, marginBottom: 14 },
+  dayLbl: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  dayAmt: { fontSize: 34, fontFamily: Fonts.extraBold, color: '#3b1f6e', letterSpacing: -1.5, marginBottom: 14 },
   dayTrack: { backgroundColor: '#f0edfb', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 10 },
   dayFill: { height: 6, borderRadius: 99 },
-  dayRemain: { fontSize: 13, fontWeight: '700', color: '#6b4fa8' },
+  dayRemain: { fontSize: 13, fontFamily: Fonts.bold, color: '#9b8cc4' },
+  dayRemainBtn: { alignSelf: 'flex-start', marginTop: 2 },
+  dayRemainBtnActive: { backgroundColor: '#f0edfb', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  dayRemainActive: { color: '#6b4fa8' },
+  dayRemainLink: { color: '#3b1f6e' },
   dayCompareCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
-  dayCompareText: { fontSize: 13, fontWeight: '700', color: '#3b1f6e', marginBottom: 3 },
-  dayCompareSub: { fontSize: 11, color: '#b0a3d4', fontWeight: '500' },
+  dayCompareText: { fontSize: 13, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 3 },
+  dayCompareSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
   dayCompareBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
-  dayCompareBadgeText: { fontSize: 12, fontWeight: '800' },
+  dayCompareBadgeText: { fontSize: 12, fontFamily: Fonts.extraBold },
   dayCatCard: { backgroundColor: '#fff', borderRadius: 20, padding: 18, gap: 12, marginBottom: 12, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
-  dayCatTitle: { fontSize: 14, fontWeight: '800', color: '#3b1f6e', marginBottom: 2 },
+  dayCatTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 2 },
   dayCatRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   dayCatDot: { width: 9, height: 9, borderRadius: 5, flexShrink: 0 },
-  dayCatName: { fontSize: 13, fontWeight: '600', color: '#3b1f6e', flex: 1 },
-  dayCatAmt: { fontSize: 14, fontWeight: '900', color: '#6b4fa8' },
+  dayCatName: { fontSize: 13, fontFamily: Fonts.semiBold, color: '#3b1f6e', flex: 1 },
+  dayCatAmt: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
   dayEmpty: { alignItems: 'center', paddingVertical: 40 },
-  dayEmptyTitle: { fontSize: 16, fontWeight: '800', color: '#3b1f6e', marginBottom: 6 },
-  dayEmptySub: { fontSize: 13, color: '#b0a3d4', fontWeight: '500' },
+  dayEmptyTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
+  dayEmptySub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
 
   /* ── TUẦN ── */
   weekBody: { backgroundColor: '#eeeaf8', padding: 20 },
   weekCompareCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 20, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
   weekCmpItem: { flex: 1, alignItems: 'center' },
-  weekCmpLbl: { fontSize: 10, fontWeight: '700', color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 5 },
-  weekCmpVal: { fontSize: 16, fontWeight: '900', color: '#3b1f6e', letterSpacing: -0.5 },
+  weekCmpLbl: { fontSize: 10, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 5 },
+  weekCmpVal: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', letterSpacing: -0.5 },
   weekCmpDivider: { width: 1, backgroundColor: '#f0edfb', height: 36, marginHorizontal: 4 },
   weekCmpBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  weekCmpBadgeText: { fontSize: 11, fontWeight: '800' },
+  weekCmpBadgeText: { fontSize: 11, fontFamily: Fonts.extraBold },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   peakBadge: { backgroundColor: '#fef2f2', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  peakBadgeText: { fontSize: 10, fontWeight: '700', color: '#ef4444' },
+  peakBadgeText: { fontSize: 10, fontFamily: Fonts.bold, color: '#ef4444' },
 
   /* ── THÁNG ── */
   monthBody: { backgroundColor: '#eeeaf8', padding: 20 },
@@ -503,20 +566,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
   },
   monthScoreCircle: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(107,79,168,0.3)' },
-  monthScoreLbl: { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginBottom: 6, position: 'relative', zIndex: 1 },
-  monthScoreAmt: { fontSize: 34, fontWeight: '900', color: '#fff', letterSpacing: -1.5, marginBottom: 16, position: 'relative', zIndex: 1 },
+  monthScoreLbl: { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: Fonts.semiBold, marginBottom: 6, position: 'relative', zIndex: 1 },
+  monthScoreAmt: { fontSize: 34, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: -1.5, marginBottom: 16, position: 'relative', zIndex: 1 },
   monthScoreRow: { flexDirection: 'row', position: 'relative', zIndex: 1 },
   monthScoreItem: { flex: 1, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 10 },
   monthScoreItemDivider: { width: 8 },
-  monthScoreItemVal: { fontSize: 14, fontWeight: '900', color: '#fff', marginBottom: 3 },
-  monthScoreItemLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: '600' },
+  monthScoreItemVal: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 3 },
+  monthScoreItemLbl: { fontSize: 9, color: 'rgba(255,255,255,0.55)', fontFamily: Fonts.semiBold },
 
   insightBadge: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 10 },
-  insightText: { fontSize: 12, fontWeight: '700' },
+  insightText: { fontSize: 12, fontFamily: Fonts.bold },
 
   budgetLineLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 8 },
   budgetLineDash: { width: 20, height: 2, backgroundColor: '#ef4444', opacity: 0.5 },
-  budgetLineLabelText: { fontSize: 10, color: '#ef4444', fontWeight: '600', opacity: 0.7 },
+  budgetLineLabelText: { fontSize: 10, color: '#ef4444', fontFamily: Fonts.semiBold, opacity: 0.7 },
 
   monthCmpCard: {
     backgroundColor: '#fff', borderRadius: 20, padding: 20,
@@ -525,25 +588,53 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
   },
   monthCmpItem: { flex: 1, alignItems: 'center' },
-  monthCmpLbl: { fontSize: 10, fontWeight: '700', color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 },
-  monthCmpAmt: { fontSize: 20, fontWeight: '900', color: '#3b1f6e', letterSpacing: -0.5 },
+  monthCmpLbl: { fontSize: 10, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 6 },
+  monthCmpAmt: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#3b1f6e', letterSpacing: -0.5 },
   monthCmpDivider: { width: 1, backgroundColor: '#f0edfb', marginHorizontal: 8 },
   monthCmpBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  monthCmpBadgeText: { fontSize: 10, fontWeight: '800' },
+  monthCmpBadgeText: { fontSize: 10, fontFamily: Fonts.extraBold },
 
   section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#3b1f6e', marginBottom: 10 },
+  sectionTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 10 },
   chartCard: { backgroundColor: '#fff', borderRadius: 20, padding: 8, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3, alignItems: 'center' },
   pieWrap: { flexDirection: 'column', alignItems: 'center', paddingVertical: 8, alignSelf: 'stretch' },
   pieLegend: { alignSelf: 'stretch', gap: 8, paddingHorizontal: 12, paddingTop: 4 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
-  legendName: { fontSize: 12, fontWeight: '600', color: '#3b1f6e', flex: 1 },
-  legendPct: { fontSize: 12, fontWeight: '800', color: '#6b4fa8', minWidth: 32, textAlign: 'right' },
-  legendAmt: { fontSize: 11, fontWeight: '700', color: '#9b8cc4', minWidth: 56, textAlign: 'right' },
+  legendName: { fontSize: 12, fontFamily: Fonts.semiBold, color: '#3b1f6e', flex: 1 },
+  legendPct: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8', minWidth: 32, textAlign: 'right' },
+  legendAmt: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', minWidth: 56, textAlign: 'right' },
   emptyChart: { height: 120, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 13, color: '#b0a3d4', fontWeight: '600' },
+  emptyText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
   empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#3b1f6e', marginBottom: 6 },
-  emptySub: { fontSize: 13, color: '#b0a3d4', fontWeight: '500' },
+  emptyTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
+  emptySub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+
+  /* ── Modal chi tiết ── */
+  modalContainer: { flex: 1, justifyContent: 'flex-end' },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingTop: 12, paddingHorizontal: 20, maxHeight: '75%' },
+  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#e4dff5', alignSelf: 'center', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  modalClose: { fontSize: 16, color: '#9b8cc4', fontFamily: Fonts.bold, paddingHorizontal: 4 },
+  modalRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0edfb' },
+  modalItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0edfb' },
+  modalItemIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  modalItemNote: { fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e', marginBottom: 3 },
+  modalItemCat: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4' },
+  modalItemAmt: { fontSize: 15, fontFamily: Fonts.extraBold },
+  modalBubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  modalBubble: { flex: 1, backgroundColor: '#f0edfb', borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
+  modalBubbleMain: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modalBubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalBubbleText: { fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e', flex: 1 },
+  modalBubbleAmt: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
+  modalBubbleTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4', paddingBottom: 4 },
+  modalCatTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, paddingLeft: 4 },
+  modalCatDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  modalCatName: { fontSize: 11, fontFamily: Fonts.semiBold, color: '#9b8cc4' },
+  modalNote: { fontSize: 11, fontFamily: Fonts.medium, color: '#9b8cc4', marginTop: 2 },
+  modalAmt: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
+  modalTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4', marginTop: 2 },
 });

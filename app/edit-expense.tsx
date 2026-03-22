@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, Platform, ScrollView
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
 import { ExpenseCategory } from '../types';
 import { formatVND, parseVND } from '../lib/vnd';
@@ -34,6 +35,13 @@ export default function EditExpenseScreen() {
 
   const amount = parseVND(rawInput);
 
+  const handleDelete = () => {
+    Alert.alert('Xóa giao dịch', 'Bạn có chắc muốn xóa?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: async () => { await deleteExpense(id); router.back(); } },
+    ]);
+  };
+
   const handleSave = async () => {
     if (!amount || amount <= 0) {
       Alert.alert('Lỗi', 'Vui lòng nhập số tiền hợp lệ');
@@ -46,18 +54,6 @@ export default function EditExpenseScreen() {
     else router.back();
   };
 
-  const handleDelete = () => {
-    Alert.alert('Xóa giao dịch', 'Bạn có chắc muốn xóa?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa', style: 'destructive',
-        onPress: async () => {
-          await deleteExpense(id);
-          router.back();
-        }
-      },
-    ]);
-  };
 
   return (
     <KeyboardAvoidingView
@@ -76,8 +72,12 @@ export default function EditExpenseScreen() {
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Text style={styles.backText}>← Quay lại</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
-              <Text style={styles.deleteText}>🗑 Xóa</Text>
+            <TouchableOpacity
+              style={[styles.saveBtn, (!amount || saving) && styles.saveBtnDisabled]}
+              onPress={handleSave}
+              disabled={!amount || saving}
+            >
+              <Text style={styles.saveBtnText}>{saving ? 'Đang lưu...' : 'Lưu'}</Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.headerTitle}>Sửa chi tiêu</Text>
@@ -127,15 +127,10 @@ export default function EditExpenseScreen() {
             ))}
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, (!amount || saving) && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={!amount || saving}
-          >
-            <Text style={styles.saveBtnText}>
-              {saving ? 'Đang lưu...' : `Lưu ${formatVND(amount)}`}
-            </Text>
+          <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteText}>Xóa</Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -153,22 +148,22 @@ const styles = StyleSheet.create({
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   backBtn: {},
-  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: '700' },
-  deleteBtn: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6 },
-  deleteText: { fontSize: 12, color: '#fca5a5', fontWeight: '700' },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 20 },
+  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
+  deleteBtn: { backgroundColor: '#ef4444', borderRadius: 99, paddingVertical: 14, alignItems: 'center', marginTop: 12, marginBottom: 40 },
+  deleteText: { fontSize: 15, color: '#fff', fontFamily: Fonts.extraBold },
+  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
   amountRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  amountInput: { fontSize: 44, fontWeight: '900', color: '#fff', flex: 1, letterSpacing: -1, padding: 0 },
-  currency: { fontSize: 24, fontWeight: '900', color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
-  amountPreview: { fontSize: 14, color: '#c4b5fd', fontWeight: '700', marginBottom: 4 },
-  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+  amountInput: { fontSize: 44, fontFamily: Fonts.extraBold, color: '#fff', flex: 1, letterSpacing: -1, padding: 0 },
+  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
+  amountPreview: { fontSize: 14, color: '#c4b5fd', fontFamily: Fonts.bold, marginBottom: 4 },
+  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.medium },
 
   body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
-  sectionLabel: { fontSize: 13, fontWeight: '800', color: '#3b1f6e', marginBottom: 10, marginTop: 4 },
+  sectionLabel: { fontSize: 13, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 10, marginTop: 4 },
   noteInput: {
     backgroundColor: '#fff', borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 13,
-    fontSize: 14, color: '#3b1f6e', fontWeight: '500',
+    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.medium,
     borderWidth: 1.5, borderColor: '#e4dff5', marginBottom: 20,
   },
   pillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
@@ -180,14 +175,13 @@ const styles = StyleSheet.create({
   },
   pillActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
   pillIcon: { fontSize: 16 },
-  pillLabel: { fontSize: 13, fontWeight: '700', color: '#6b4fa8' },
+  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
   pillLabelActive: { color: '#fff' },
   saveBtn: {
-    backgroundColor: '#3b1f6e', borderRadius: 18,
-    paddingVertical: 17, alignItems: 'center',
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 99,
+    paddingHorizontal: 16, paddingVertical: 7,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  saveBtnDisabled: { opacity: 0.4 },
+  saveBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
 });
