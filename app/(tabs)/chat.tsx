@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator,
@@ -34,6 +34,24 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<Message[]>([]);
   const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('id, role, content')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      if (data && data.length > 0) {
+        setMessages(data.map(r => ({ id: r.id, role: r.role as 'user' | 'assistant', text: r.content })));
+        setHistory(data.map(r => ({ role: r.role as 'user' | 'assistant', content: r.content })));
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
+      }
+    };
+    load();
+  }, [user?.id]);
 
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
