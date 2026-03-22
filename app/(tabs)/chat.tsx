@@ -7,6 +7,8 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useGoals } from '../../context/GoalsContext';
+import { useProfile } from '../../context/ProfileContext';
 import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/claude';
 import { supabase } from '../../lib/supabase';
 
@@ -22,9 +24,11 @@ const QUICK_PROMPTS = [
 export default function ChatScreen() {
   const { user, session } = useAuth();
   const { totalThisMonth, byCategory } = useExpenses(user?.id);
+  const { goals } = useGoals();
+  const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([{
     id: 'welcome', role: 'assistant',
-    text: 'Xin chào! Tôi là FinMate của bạn 👋\n\nTôi có thể giúp bạn phân tích chi tiêu, lập ngân sách và đạt mục tiêu tiết kiệm. Hỏi tôi bất cứ điều gì!',
+    text: 'Tớ đây! 🫡 Người bạn hiếm hoi không phán xét cậu tiêu nhiều. Cần giúp gì không?',
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +45,13 @@ export default function ChatScreen() {
 
     const updated: Message[] = [...history, { role: 'user', content: text }];
     try {
-      const ctx = buildFinancialContext({ totalThisMonth, byCategory, goals: [], currency: '₫' });
+      const ctx = buildFinancialContext({
+        totalThisMonth,
+        byCategory,
+        budget: profile?.monthly_budget ?? 0,
+        goals: goals.map(g => ({ title: g.title, saved: g.saved_amount, target: g.target_amount })),
+        currency: '₫',
+      });
       const aiText = await sendMessageToClaude(updated, ctx, session?.access_token ?? '');
       const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText };
       setMessages(prev => [...prev, aiMsg]);
@@ -55,13 +65,13 @@ export default function ChatScreen() {
     } catch {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(), role: 'assistant',
-        text: 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại 🙏',
+        text: 'Xin lỗi, tớ đang gặp sự cố 😅 Cậu thử lại sau nhé!',
       }]);
     } finally {
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [loading, history, totalThisMonth, byCategory, session, user]);
+  }, [loading, history, totalThisMonth, byCategory, session, user, goals, profile]);
 
   return (
     <View style={styles.root}>

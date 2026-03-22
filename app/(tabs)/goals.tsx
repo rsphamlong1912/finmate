@@ -74,6 +74,7 @@ export default function GoalsScreen() {
       <View style={styles.header}>
         <View style={styles.headerCircle} />
         <Text style={styles.headerTitle}>Mục tiêu 🎯</Text>
+        <Text style={styles.headerSub}>Đặt mục tiêu tiết kiệm và theo dõi tiến trình</Text>
         {goals.length > 0 && (
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
@@ -335,7 +336,8 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden',
   },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.08)' },
-  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 4 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.medium, marginBottom: 16 },
   summaryCard: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: 16 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   summaryLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.semiBold, marginBottom: 4 },

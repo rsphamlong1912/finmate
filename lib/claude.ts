@@ -1,56 +1,46 @@
-export type Message = { role: 'user' | 'assistant'; content: string };
+import { supabase } from './supabase';
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-// Đặt API key trong Supabase Edge Function để bảo mật
-// Đây là wrapper gọi qua Edge Function của bạn
-const EDGE_FUNCTION_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/chat`;
+export type Message = { role: 'user' | 'assistant'; content: string };
 
 export async function sendMessageToClaude(
   messages: Message[],
   userFinancialContext: string,
-  authToken: string
+  _authToken: string
 ): Promise<string> {
-  const systemPrompt = `You are an expert personal finance coach called "FinMate". 
-You help users manage their money, track spending, and achieve savings goals.
-Be concise, friendly, and practical. Always respond in the same language the user uses.
+  const systemPrompt = `Tớ là FinMate — người bạn đồng hành tài chính thân thiện, nói chuyện tự nhiên như nhắn tin với bạn thân, không phải robot.
 
-Current user financial data:
+Dữ liệu tài chính của người dùng:
 ${userFinancialContext}
 
-Guidelines:
-- Give specific, actionable advice based on their actual data
-- Point out spending patterns (both good and bad)
-- Suggest realistic savings targets
-- Celebrate wins and progress
-- Keep responses under 150 words unless user asks for detail`;
+Cách trả lời:
+- Xưng "tớ", gọi người dùng là "cậu"
+- Viết tự nhiên, gần gũi, đôi khi dí dỏm — như đang nhắn tin
+- TUYỆT ĐỐI không dùng markdown: không #, không *, không **, không gạch đầu dòng kiểu "-"
+- Nếu liệt kê thì viết thành câu hoặc dùng số "1. 2. 3." thôi
+- Dùng emoji tự nhiên, vừa phải
+- Câu ngắn, dễ đọc trên điện thoại
+- Đưa lời khuyên cụ thể dựa trên dữ liệu thực
+- Ăn mừng khi bạn ấy làm tốt, động viên khi chi nhiều
+- Dưới 120 từ trừ khi được hỏi chi tiết
+- Luôn trả lời bằng tiếng Việt`;
 
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`,
-    },
-    body: JSON.stringify({ messages, systemPrompt }),
+  const { data, error } = await supabase.functions.invoke('chat', {
+    body: { messages, systemPrompt },
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to get AI response');
-  }
-
-  const data = await response.json();
-  console.log('Claude response:', JSON.stringify(data));
-  if (!response.ok) throw new Error(data.error || 'API error');
-  return data.content ?? 'Không có phản hồi';
+  if (error) throw new Error(error.message);
+  return data?.content ?? 'Không có phản hồi';
 }
 
 // Tạo financial context từ dữ liệu user để đưa vào prompt
 export function buildFinancialContext(params: {
   totalThisMonth: number;
   byCategory: Record<string, number>;
+  budget?: number;
   goals: Array<{ title: string; saved: number; target: number }>;
   currency: string;
 }): string {
-  const { totalThisMonth, byCategory, goals, currency } = params;
+  const { totalThisMonth, byCategory, budget, goals, currency } = params;
 
   const categoryLines = Object.entries(byCategory)
     .sort(([, a], [, b]) => b - a)
@@ -62,10 +52,11 @@ export function buildFinancialContext(params: {
     .join('\n');
 
   return `
-Total spending this month: ${currency}${totalThisMonth.toFixed(0)}
-Breakdown by category:
-${categoryLines || '  (no expenses yet)'}
-Savings goals:
-${goalLines || '  (no goals set)'}
+Ngân sách tháng: ${budget ? `${currency}${budget.toFixed(0)}` : 'chưa đặt'}
+Chi tiêu tháng này: ${currency}${totalThisMonth.toFixed(0)}${budget ? ` (${Math.round((totalThisMonth / budget) * 100)}% ngân sách)` : ''}
+Chi tiêu theo danh mục:
+${categoryLines || '  (chưa có chi tiêu)'}
+Mục tiêu tiết kiệm:
+${goalLines || '  (chưa có mục tiêu)'}
   `.trim();
 }

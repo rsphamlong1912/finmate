@@ -229,6 +229,7 @@ export default function StatsScreen() {
       <View style={styles.header}>
         <View style={styles.headerCircle} />
         <Text style={styles.headerTitle}>Báo cáo chi tiêu</Text>
+        <Text style={styles.headerSub}>Phân tích chi tiêu theo danh mục và thời gian</Text>
         <View style={styles.filterRow}>
           {FILTERS.map(f => (
             <TouchableOpacity key={f} style={[styles.filterTab, filter === f && styles.filterTabActive]} onPress={() => setFilter(f)}>
@@ -508,7 +509,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3b1f6e' },
   header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 20, paddingHorizontal: 24, overflow: 'hidden' },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
-  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 16 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 4 },
+  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.medium, marginBottom: 16 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterTab: { flex: 1, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 10, paddingVertical: 8, alignItems: 'center' },
   filterTabActive: { backgroundColor: '#fff' },
