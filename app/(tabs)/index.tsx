@@ -10,6 +10,7 @@ import { useProfile } from '../../context/ProfileContext';
 import { CATEGORY_LABELS, CATEGORY_COLORS } from '../../types';
 import { formatVND, formatVNDShort } from '../../lib/vnd';
 import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
+
 const { width } = Dimensions.get('window');
 
 const CAT_ICONS: Record<string, string> = {
@@ -17,12 +18,10 @@ const CAT_ICONS: Record<string, string> = {
   bills: '💡', health: '💊', entertainment: '🎮', other: '📦',
 };
 
-
 export default function DashboardScreen() {
-
   const { user } = useAuth();
-  const { totalThisMonth, byCategory, expenses } = useExpenses(user?.id);
-  const { profile, checkAndUpdateStreak } = useProfile(user?.id);
+  const { totalThisMonth, byCategory, expenses } = useExpenses();
+  const { profile, checkAndUpdateStreak } = useProfile();
   const router = useRouter();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -34,9 +33,9 @@ export default function DashboardScreen() {
   const dot1Anim = useRef(new Animated.Value(0.4)).current;
   const dot2Anim = useRef(new Animated.Value(0.4)).current;
   const dot3Anim = useRef(new Animated.Value(0.4)).current;
+  const fabAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Check streak mỗi khi mở Dashboard
     checkAndUpdateStreak();
 
     const enter = Animated.parallel([
@@ -48,22 +47,18 @@ export default function DashboardScreen() {
       Animated.timing(orb1Anim, { toValue: -14, duration: 2500, useNativeDriver: true }),
       Animated.timing(orb1Anim, { toValue: 0, duration: 2500, useNativeDriver: true }),
     ]));
-
     const orb2 = Animated.loop(Animated.sequence([
       Animated.timing(orb2Anim, { toValue: 10, duration: 3500, useNativeDriver: true }),
       Animated.timing(orb2Anim, { toValue: 0, duration: 3500, useNativeDriver: true }),
     ]));
-
     const orb3 = Animated.loop(Animated.sequence([
       Animated.timing(orb3Anim, { toValue: -8, duration: 2000, useNativeDriver: true }),
       Animated.timing(orb3Anim, { toValue: 0, duration: 2000, useNativeDriver: true }),
     ]));
-
     const streak = Animated.loop(Animated.sequence([
       Animated.timing(streakAnim, { toValue: 0.75, duration: 1000, useNativeDriver: true }),
       Animated.timing(streakAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
     ]));
-
     const dots = [[dot1Anim, 500], [dot2Anim, 1000], [dot3Anim, 1500]].map(([anim, delay]) =>
       Animated.loop(Animated.sequence([
         Animated.delay(delay as number),
@@ -71,6 +66,9 @@ export default function DashboardScreen() {
         Animated.timing(anim as Animated.Value, { toValue: 0.3, duration: 800, useNativeDriver: true }),
       ]))
     );
+
+    // FAB bounce in
+    Animated.spring(fabAnim, { toValue: 1, delay: 600, useNativeDriver: true, tension: 80, friction: 6 }).start();
 
     enter.start();
     [orb1, orb2, orb3, streak, ...dots].forEach(a => a.start());
@@ -81,17 +79,23 @@ export default function DashboardScreen() {
     };
   }, [checkAndUpdateStreak]);
 
-  // Dùng ngân sách từ profile DB, fallback 10tr
   const budget = profile?.monthly_budget ?? 10_000_000;
   const streakCount = profile?.streak_count ?? 0;
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'bạn';
-
   const topCategories = Object.entries(byCategory).sort(([, a], [, b]) => b - a).slice(0, 4);
   const recentExpenses = expenses.slice(0, 4);
   const pct = Math.min((totalThisMonth / budget) * 100, 100);
   const remaining = Math.max(budget - totalThisMonth, 0);
   const now = new Date();
   const monthName = now.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
+
+  // Insight cho recap banner
+  const topCat = Object.entries(byCategory).sort(([, a], [, b]) => b - a)[0];
+  const topCatName = topCat
+    ? CATEGORY_LABELS[topCat[0] as keyof typeof CATEGORY_LABELS]?.replace(/^.\s/, '') ?? topCat[0]
+    : null;
+  const topCatIcon = topCat ? CAT_ICONS[topCat[0]] ?? '📦' : null;
+  const pctBudget = Math.round(pct);
 
   return (
     <View style={styles.root}>
@@ -166,21 +170,45 @@ export default function DashboardScreen() {
           </Animated.View>
         </View>
 
-        {/* FLOAT CARD */}
-        <Animated.View style={[styles.floatCard, { opacity: fadeAnim }]}>
-          {[
-            { icon: '➕', label: 'Thêm', onPress: () => router.push('/add-expense') },
-            { icon: '🎯', label: 'Mục tiêu', onPress: () => router.push('/(tabs)/goals') },
-            { icon: '📊', label: 'Báo cáo', onPress: () => router.push('/(tabs)/stats') },
-            { icon: '👤', label: 'Cá nhân', onPress: () => router.push('/(tabs)/profile') },
-          ].map(a => (
-            <TouchableOpacity key={a.label} style={styles.actionBtn} onPress={a.onPress}>
-              <View style={styles.actionIcon}>
-                <Text style={styles.actionIconText}>{a.icon}</Text>
-              </View>
-              <Text style={styles.actionLabel}>{a.label}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* RECAP BANNER — thay float card */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <TouchableOpacity
+            style={styles.recapBanner}
+            onPress={() => router.push('/(tabs)/stats')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.recapLeft}>
+              <Text style={styles.recapEyebrow}>📈 Recap chi tiêu của bạn</Text>
+              <Text style={styles.recapTitle}>
+                {totalThisMonth === 0
+                  ? 'Chưa có dữ liệu tháng này'
+                  : topCatName
+                  ? `${topCatIcon} ${topCatName} chiếm nhiều nhất · ${pctBudget}% ngân sách`
+                  : `Đã dùng ${pctBudget}% ngân sách tháng này`}
+              </Text>
+              <Text style={styles.recapSub}>Xem báo cáo đầy đủ →</Text>
+            </View>
+            <View style={{ width: 58, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
+              <Svg width="58" height="38">
+                {(topCategories.length > 0 ? topCategories : [['a', 0.4], ['b', 0.7], ['c', 0.5], ['d', 0.9]] as [string, number][]).slice(0, 4).map(([cat, amt], i) => {
+                  const vals = topCategories.length > 0
+                    ? topCategories.map(([, v]) => v)
+                    : [0.4, 0.7, 0.5, 0.9];
+                  const maxAmt = Math.max(...vals) || 1;
+                  const barH = Math.max(5, ((amt as number) / maxAmt) * 30);
+                  const color = topCategories.length > 0
+                    ? (CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS] ?? '#6b4fa8')
+                    : '#c4b5fd';
+                  return (
+                    <Rect key={i} x={i * 15 + 1} y={38 - barH} width={11} height={barH} rx={4} fill={color + 'aa'} />
+                  );
+                })}
+              </Svg>
+            </View>
+            <View style={styles.recapArrow}>
+              <Text style={styles.recapArrowText}>›</Text>
+            </View>
+          </TouchableOpacity>
         </Animated.View>
 
         {/* BOTTOM */}
@@ -254,12 +282,27 @@ export default function DashboardScreen() {
           <View style={{ height: 120 }} />
         </View>
       </ScrollView>
+
+      {/* FAB — nút + cố định góc dưới phải */}
+      <Animated.View style={[styles.fabWrap, {
+        transform: [{ scale: fabAnim }],
+        opacity: fabAnim,
+      }]}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push('/add-expense')}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.fabText}>+</Text>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#eeeaf8' },
+
   top: {
     backgroundColor: '#1a0a3c',
     paddingTop: 56, paddingBottom: 40, paddingHorizontal: 24,
@@ -291,18 +334,25 @@ const styles = StyleSheet.create({
   progFill: { height: 6, borderRadius: 99, backgroundColor: '#c4b5fd' },
   progSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
 
-  floatCard: {
-    backgroundColor: '#fff', marginHorizontal: 20, marginTop: -20,
-    borderRadius: 22, paddingVertical: 18, paddingHorizontal: 8,
-    flexDirection: 'row', justifyContent: 'space-around',
+  /* ── RECAP BANNER ── */
+  recapBanner: {
+    marginHorizontal: 20, marginTop: -20,
+    backgroundColor: '#fff',
+    borderRadius: 22, padding: 18,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     shadowColor: '#1a0a3c', shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2, shadowRadius: 24, elevation: 12, zIndex: 10,
+    shadowOpacity: 0.18, shadowRadius: 24, elevation: 12, zIndex: 10,
+    overflow: 'hidden',
+    borderWidth: 1, borderColor: '#ede9fb',
   },
-  actionBtn: { alignItems: 'center', gap: 6 },
-  actionIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: '#f0edfb', alignItems: 'center', justifyContent: 'center' },
-  actionIconText: { fontSize: 22 },
-  actionLabel: { fontSize: 11, color: '#6b4fa8', fontWeight: '800' },
+recapLeft: { flex: 1 },
+  recapEyebrow: { fontSize: 11, fontWeight: '700', color: '#6b4fa8', marginBottom: 5 },
+  recapTitle: { fontSize: 13, fontWeight: '800', color: '#3b1f6e', lineHeight: 19, marginBottom: 5 },
+  recapSub: { fontSize: 11, color: '#b0a3d4', fontWeight: '600' },
+  recapArrow: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f0edfb', alignItems: 'center', justifyContent: 'center' },
+  recapArrowText: { fontSize: 18, color: '#6b4fa8', fontWeight: '700', lineHeight: 22 },
 
+  /* ── BODY ── */
   bottom: { paddingHorizontal: 20, paddingTop: 20 },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: '#3b1f6e', marginBottom: 12 },
@@ -329,4 +379,20 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, fontWeight: '700', color: '#b0a3d4', marginBottom: 14 },
   emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
   emptyBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+  /* ── FAB ── */
+  fabWrap: {
+    position: 'absolute',
+    bottom: 32, right: 24,
+  },
+  fab: {
+    width: 58, height: 58,
+    borderRadius: 29,
+    backgroundColor: '#6b4fa8',
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#3b1f6e',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35, shadowRadius: 16, elevation: 12,
+  },
+  fabText: { fontSize: 30, color: '#fff', fontWeight: '300', lineHeight: 34, marginTop: -2 },
 });
