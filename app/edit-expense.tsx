@@ -7,18 +7,8 @@ import { KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
-import { ExpenseCategory } from '../types';
+import { useCategories } from '../context/CategoriesContext';
 import { formatVND, parseVND } from '../lib/vnd';
-
-const CATEGORIES: { id: ExpenseCategory; icon: string; label: string }[] = [
-  { id: 'food', icon: '🍜', label: 'Ăn uống' },
-  { id: 'transport', icon: '🚗', label: 'Di chuyển' },
-  { id: 'shopping', icon: '🛍', label: 'Mua sắm' },
-  { id: 'bills', icon: '💡', label: 'Hóa đơn' },
-  { id: 'health', icon: '💊', label: 'Sức khỏe' },
-  { id: 'entertainment', icon: '🎮', label: 'Giải trí' },
-  { id: 'other', icon: '📦', label: 'Khác' },
-];
 
 export default function EditExpenseScreen() {
   const router = useRouter();
@@ -27,9 +17,10 @@ export default function EditExpenseScreen() {
   }>();
 
   const { updateExpense, deleteExpense } = useExpenses();
+  const { categories } = useCategories();
 
   const [rawInput, setRawInput] = useState(initAmount ?? '');
-  const [category, setCategory] = useState<ExpenseCategory>((initCategory as ExpenseCategory) ?? 'food');
+  const [category, setCategory] = useState(initCategory ?? 'food');
   const [note, setNote] = useState(initNote ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -102,26 +93,26 @@ export default function EditExpenseScreen() {
 
         {/* BODY */}
         <View style={styles.body}>
-          <Text style={styles.sectionLabel}>Ghi chú</Text>
+          <Text style={styles.sectionLabel}>Tên chi tiêu</Text>
           <TextInput
             style={styles.noteInput}
             value={note}
             onChangeText={setNote}
-            placeholder="Mô tả chi tiêu (tùy chọn)..."
+            placeholder="Ví dụ: Cà phê Highland, Grab về nhà..."
             placeholderTextColor="#c4b5fd"
           />
 
           <Text style={styles.sectionLabel}>Danh mục</Text>
           <View style={styles.pillsWrap}>
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <TouchableOpacity
                 key={cat.id}
-                style={[styles.pill, category === cat.id && styles.pillActive]}
+                style={[styles.pill, category === cat.id && { backgroundColor: cat.color, borderColor: cat.color }]}
                 onPress={() => setCategory(cat.id)}
               >
-                <Text style={styles.pillIcon}>{cat.icon}</Text>
+                <Text style={styles.pillIcon}>{cat.emoji}</Text>
                 <Text style={[styles.pillLabel, category === cat.id && styles.pillLabelActive]}>
-                  {cat.label}
+                  {cat.name}
                 </Text>
               </TouchableOpacity>
             ))}

@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
   settingRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   settingIcon: { fontSize: 22 },
   settingLabel: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  settingSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  settingSub: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
   settingDivider: { height: 1, backgroundColor: '#f5f3ff', marginHorizontal: 16 },
 
   menuCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   menuBorder: { borderBottomWidth: 1, borderBottomColor: '#f5f3ff' },
   menuIconWrap: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f0edfb', alignItems: 'center', justifyContent: 'center' },
   menuLabel: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  menuSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  menuSub: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
   menuArrow: { fontSize: 20, color: '#c4b5fd', fontFamily: Fonts.bold },
 
   signOutBtn: { backgroundColor: '#fff', borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 16, borderWidth: 2, borderColor: '#f0edfb' },
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   modal: { flex: 1, backgroundColor: '#eeeaf8' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0edfb' },
   modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  modalCancel: { fontSize: 15, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  modalCancel: { fontSize: 15, color: '#c4b5fd', fontFamily: Fonts.semiBold },
   modalSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
   inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8 },
   nameInput: { backgroundColor: '#fff', borderRadius: 16, padding: 16, fontSize: 18, color: '#3b1f6e', fontFamily: Fonts.bold, borderWidth: 2, borderColor: '#e4dff5' },

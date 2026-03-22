@@ -23,7 +23,7 @@ const QUICK_PROMPTS = [
 
 export default function ChatScreen() {
   const { user, session } = useAuth();
-  const { totalThisMonth, byCategory } = useExpenses(user?.id);
+  const { totalThisMonth, byCategory, expenses } = useExpenses(user?.id);
   const { goals } = useGoals();
   const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([{
@@ -69,6 +69,12 @@ export default function ChatScreen() {
         budget: profile?.monthly_budget ?? 0,
         goals: goals.map(g => ({ title: g.title, saved: g.saved_amount, target: g.target_amount })),
         currency: '₫',
+        recentExpenses: expenses.slice(0, 20).map(e => ({
+          note: e.note,
+          category: e.category,
+          amount: e.amount,
+          date: e.created_at,
+        })),
       });
       const aiText = await sendMessageToClaude(updated, ctx, session?.access_token ?? '');
       const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText };
@@ -118,7 +124,7 @@ export default function ChatScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={30}
+        keyboardVerticalOffset={10}
       >
         {/* MESSAGES */}
         <ScrollView
@@ -256,7 +262,7 @@ const styles = StyleSheet.create({
   bubbleTextAI: { color: '#3b1f6e', fontFamily: Fonts.medium },
 
   quickWrap: { marginTop: 8, gap: 8 },
-  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#b0a3d4', marginBottom: 4 },
+  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#c4b5fd', marginBottom: 4 },
   quickBtn: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -278,15 +284,17 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   input: {
     flex: 1, backgroundColor: '#f5f3ff', borderRadius: 16,
-    paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.semiBold,
+    paddingHorizontal: 16, paddingTop: 13, paddingBottom: 13,
+    fontSize: 14, lineHeight: 20, color: '#3b1f6e', fontFamily: Fonts.semiBold,
     maxHeight: 100, borderWidth: 2, borderColor: '#e4dff5',
+    textAlignVertical: 'top',
   },
   sendBtn: {
     backgroundColor: '#6b4fa8', borderRadius: 14,
     width: 46, height: 46, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+    flexShrink: 0,
   },
   sendDisabled: { backgroundColor: '#d4c9f0' },
   sendIcon: { color: '#fff', fontSize: 20, fontFamily: Fonts.extraBold },

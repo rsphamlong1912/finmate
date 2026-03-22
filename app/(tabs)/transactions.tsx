@@ -3,17 +3,15 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { useRouter } from 'expo-router';
 import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../context/ExpensesContext';
-import { CATEGORY_LABELS, CATEGORY_COLORS, Expense } from '../../types';
+import { Expense } from '../../types';
+import { useCategories } from '../../context/CategoriesContext';
 import { formatVND } from '../../lib/vnd';
 
 const FILTERS = ['Tất cả', 'Tuần này', 'Tháng này'];
-const CAT_ICONS: Record<string, string> = {
-  food: '🍜', transport: '🚗', shopping: '🛍',
-  bills: '💡', health: '💊', entertainment: '🎮', other: '📦',
-};
 
 export default function TransactionsScreen() {
   const { expenses, deleteExpense } = useExpenses();
+  const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Tháng này');
   const router = useRouter();
 
@@ -105,13 +103,12 @@ export default function TransactionsScreen() {
         ) : (
           sortedDays.map(day => {
             const items = grouped[day];
-            const catLabel = (cat: string) => (CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS] ?? cat).replace(/^\S+\s/, '');
             return (
               <View key={day} style={styles.group}>
                 <Text style={styles.dateLabel}>{getDayLabel(day)}</Text>
                 <View style={styles.groupCard}>
                   {items.map((e, i) => {
-                    const color = CATEGORY_COLORS[e.category as keyof typeof CATEGORY_COLORS] ?? '#6b4fa8';
+                    const color = getCategoryColor(e.category);
                     const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                     return (
                       <TouchableOpacity
@@ -122,11 +119,11 @@ export default function TransactionsScreen() {
                         activeOpacity={0.7}
                       >
                         <View style={[styles.txIconWrap, { backgroundColor: color + '1a' }]}>
-                          <Text style={{ fontSize: 20 }}>{CAT_ICONS[e.category] ?? '📦'}</Text>
+                          <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
                         </View>
                         <View style={styles.txInfo}>
-                          <Text style={styles.txCat} numberOfLines={1}>{e.note || catLabel(e.category)}</Text>
-                          <Text style={styles.txMeta}>{catLabel(e.category)} · {time}</Text>
+                          <Text style={styles.txCat} numberOfLines={1}>{e.note || getCategoryLabel(e.category)}</Text>
+                          <Text style={styles.txMeta}>{getCategoryLabel(e.category)} · {time}</Text>
                         </View>
                         <View style={styles.txRight}>
                           <Text style={[styles.txAmt, { color }]}>-{formatVND(e.amount)}</Text>
@@ -176,13 +173,13 @@ const styles = StyleSheet.create({
   txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   txInfo: { flex: 1 },
   txCat: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  txMeta: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  txMeta: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
   txRight: { alignItems: 'flex-end', gap: 3 },
   txAmt: { fontSize: 13, fontFamily: Fonts.extraBold },
   txEdit: { fontSize: 10, color: '#c4b5fd', fontFamily: Fonts.medium },
 
 empty: { alignItems: 'center', paddingVertical: 60 },
   emptyText: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
-  emptySub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+  emptySub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
   hint: { textAlign: 'center', fontSize: 11, color: '#d4c9f0', paddingVertical: 8, fontFamily: Fonts.medium },
 });

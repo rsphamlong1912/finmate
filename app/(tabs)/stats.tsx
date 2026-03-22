@@ -5,7 +5,7 @@ import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
 import { formatVNDShort, formatVND } from '../../lib/vnd';
-import { CATEGORY_LABELS } from '../../types';
+import { useCategories } from '../../context/CategoriesContext';
 
 const { width } = Dimensions.get('window');
 const FILTERS = ['Ngày', 'Tuần', 'Tháng'];
@@ -13,11 +13,6 @@ const FILTERS = ['Ngày', 'Tuần', 'Tháng'];
 function toLocalDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
-
-const CAT_COLORS: Record<string, string> = {
-  food: '#ef4444', transport: '#3b82f6', shopping: '#8b5cf6',
-  bills: '#f59e0b', health: '#10b981', entertainment: '#ec4899', other: '#6b7280',
-};
 
 function getWeekStart(date: Date): Date {
   const d = new Date(date);
@@ -53,7 +48,7 @@ function DayCompareCard({ expenses, total }: { expenses: any[]; total: number })
         {yesterdayTotal > 0 && <Text style={styles.dayCompareSub}>Hôm qua: {formatVNDShort(yesterdayTotal)}</Text>}
       </View>
       {yesterdayTotal > 0 && !isSame && (
-        <View style={[styles.dayCompareBadge, { backgroundColor: isMore ? '#fef3c7' : '#ecfdf5' }]}>
+        <View style={[styles.dayCompareBadge, { backgroundColor: isMore ? '#fef3c7' : '#eeeaf8' }]}>
           <Text style={[styles.dayCompareBadgeText, { color: isMore ? '#92400e' : '#065f46' }]}>
             {isMore ? '+' : '-'}{Math.abs(Math.round((diff / yesterdayTotal) * 100))}%
           </Text>
@@ -86,7 +81,7 @@ function WeekCompareCard({ expenses, total }: { expenses: any[]; total: number }
       <View style={styles.weekCmpDivider} />
       <View style={styles.weekCmpItem}>
         <Text style={styles.weekCmpLbl}>Tuần trước</Text>
-        <Text style={[styles.weekCmpVal, { color: '#b0a3d4', fontSize: 15 }]}>
+        <Text style={[styles.weekCmpVal, { color: '#c4b5fd', fontSize: 15 }]}>
           {lastWeekTotal > 0 ? formatVNDShort(lastWeekTotal) : '—'}
         </Text>
       </View>
@@ -94,9 +89,9 @@ function WeekCompareCard({ expenses, total }: { expenses: any[]; total: number }
       <View style={styles.weekCmpItem}>
         <Text style={styles.weekCmpLbl}>Chênh lệch</Text>
         {isSame || lastWeekTotal === 0 ? (
-          <Text style={[styles.weekCmpVal, { color: '#b0a3d4', fontSize: 13 }]}>—</Text>
+          <Text style={[styles.weekCmpVal, { color: '#c4b5fd', fontSize: 13 }]}>—</Text>
         ) : (
-          <View style={[styles.weekCmpBadge, { backgroundColor: isMore ? '#fef3c7' : '#ecfdf5' }]}>
+          <View style={[styles.weekCmpBadge, { backgroundColor: isMore ? '#fef3c7' : '#eeeaf8' }]}>
             <Text style={[styles.weekCmpBadgeText, { color: isMore ? '#92400e' : '#065f46' }]}>
               {isMore ? `+${pct}%` : `-${pct}%`} {isMore ? '😬' : '🎉'}
             </Text>
@@ -110,6 +105,7 @@ function WeekCompareCard({ expenses, total }: { expenses: any[]; total: number }
 export default function StatsScreen() {
   const { expenses } = useExpenses();
   const { profile } = useProfile();
+  const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Ngày');
   const [showDayDetail, setShowDayDetail] = useState(false);
 
@@ -180,7 +176,7 @@ export default function StatsScreen() {
     const rateFirst = firstHalf / halfway;
     const rateSecond = secondHalf / Math.max(now.getDate() - halfway, 1);
     if (rateSecond > rateFirst * 1.2) return { text: 'Slope dốc — đang tiêu nhanh hơn 🚨', color: '#ef4444', bg: '#fef2f2' };
-    if (rateSecond < rateFirst * 0.8) return { text: 'Slope giảm — đang kiểm soát tốt hơn 👍', color: '#065f46', bg: '#ecfdf5' };
+    if (rateSecond < rateFirst * 0.8) return { text: 'Slope giảm — đang kiểm soát tốt hơn 👍', color: '#065f46', bg: '#eeeaf8' };
     return { text: 'Slope đều — chi tiêu ổn định 💪', color: '#6b4fa8', bg: '#f0edfb' };
   }, [expenses]);
 
@@ -210,8 +206,8 @@ export default function StatsScreen() {
     const by: Record<string, number> = {};
     filtered.forEach(e => { by[e.category] = (by[e.category] ?? 0) + e.amount; });
     return Object.entries(by).sort(([, a], [, b]) => b - a).slice(0, 5).map(([cat, val]) => ({
-      x: CATEGORY_LABELS[cat as keyof typeof CATEGORY_LABELS]?.replace(/^.\s/, '') ?? cat,
-      y: val, color: CAT_COLORS[cat] ?? '#6b7280', category: cat,
+      x: getCategoryLabel(cat),
+      y: val, color: getCategoryColor(cat), category: cat,
     }));
   }, [filtered]);
   const pieTotal = pieData.reduce((s, d) => s + d.y, 0);
@@ -422,11 +418,11 @@ export default function StatsScreen() {
               <View style={styles.monthCmpDivider} />
               <View style={styles.monthCmpItem}>
                 <Text style={styles.monthCmpLbl}>Tháng trước</Text>
-                <Text style={[styles.monthCmpAmt, { color: '#b0a3d4', fontSize: 18 }]}>
+                <Text style={[styles.monthCmpAmt, { color: '#c4b5fd', fontSize: 18 }]}>
                   {lastMonthTotal > 0 ? formatVNDShort(lastMonthTotal) : '—'}
                 </Text>
                 {lastMonthTotal > 0 && (
-                  <View style={[styles.monthCmpBadge, { backgroundColor: monthIsMore ? '#fef3c7' : '#ecfdf5', marginTop: 6 }]}>
+                  <View style={[styles.monthCmpBadge, { backgroundColor: monthIsMore ? '#fef3c7' : '#eeeaf8', marginTop: 6 }]}>
                     <Text style={[styles.monthCmpBadgeText, { color: monthIsMore ? '#92400e' : '#065f46' }]}>
                       {monthIsMore ? `+${monthPct}% so tháng trước 😬` : `-${monthPct}% so tháng trước 🎉`}
                     </Text>
@@ -479,19 +475,17 @@ export default function StatsScreen() {
           </View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {[...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(e => {
-              const cat = CATEGORY_LABELS[e.category as keyof typeof CATEGORY_LABELS] ?? e.category;
+              const catLabel = getCategoryLabel(e.category);
               const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-              const color = CAT_COLORS[e.category] ?? '#6b7280';
+              const color = getCategoryColor(e.category);
               return (
                 <View key={e.id} style={styles.modalItem}>
                   <View style={[styles.modalItemIcon, { backgroundColor: color + '1a' }]}>
-                    <Text style={{ fontSize: 20 }}>
-                      {CATEGORY_LABELS[e.category as keyof typeof CATEGORY_LABELS]?.match(/^\S+/)?.[0] ?? '💸'}
-                    </Text>
+                    <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || cat.replace(/^\S+\s/, '')}</Text>
-                    <Text style={styles.modalItemCat}>{cat.replace(/^\S+\s/, '')} · {time}</Text>
+                    <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || catLabel}</Text>
+                    <Text style={styles.modalItemCat}>{catLabel} · {time}</Text>
                   </View>
                   <Text style={[styles.modalItemAmt, { color }]}>-{formatVNDShort(e.amount)}</Text>
                 </View>
@@ -531,7 +525,7 @@ const styles = StyleSheet.create({
   dayRemainLink: { color: '#3b1f6e' },
   dayCompareCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
   dayCompareText: { fontSize: 13, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 3 },
-  dayCompareSub: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  dayCompareSub: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
   dayCompareBadge: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
   dayCompareBadgeText: { fontSize: 12, fontFamily: Fonts.extraBold },
   dayCatCard: { backgroundColor: '#fff', borderRadius: 20, padding: 18, gap: 12, marginBottom: 12, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
@@ -542,7 +536,7 @@ const styles = StyleSheet.create({
   dayCatAmt: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
   dayEmpty: { alignItems: 'center', paddingVertical: 40 },
   dayEmptyTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
-  dayEmptySub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+  dayEmptySub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
 
   /* ── TUẦN ── */
   weekBody: { backgroundColor: '#eeeaf8', padding: 20 },
@@ -607,10 +601,10 @@ const styles = StyleSheet.create({
   legendPct: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8', minWidth: 32, textAlign: 'right' },
   legendAmt: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', minWidth: 56, textAlign: 'right' },
   emptyChart: { height: 120, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  emptyText: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.semiBold },
   empty: { alignItems: 'center', paddingVertical: 48 },
   emptyTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
-  emptySub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+  emptySub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
 
   /* ── Modal chi tiết ── */
   modalContainer: { flex: 1, justifyContent: 'flex-end' },
@@ -624,7 +618,7 @@ const styles = StyleSheet.create({
   modalItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f0edfb' },
   modalItemIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   modalItemNote: { fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e', marginBottom: 3 },
-  modalItemCat: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4' },
+  modalItemCat: { fontSize: 11, fontFamily: Fonts.medium, color: '#c4b5fd' },
   modalItemAmt: { fontSize: 15, fontFamily: Fonts.extraBold },
   modalBubbleRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   modalBubble: { flex: 1, backgroundColor: '#f0edfb', borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
@@ -632,11 +626,11 @@ const styles = StyleSheet.create({
   modalBubbleFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalBubbleText: { fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e', flex: 1 },
   modalBubbleAmt: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
-  modalBubbleTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4', paddingBottom: 4 },
+  modalBubbleTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#c4b5fd', paddingBottom: 4 },
   modalCatTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, paddingLeft: 4 },
   modalCatDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
   modalCatName: { fontSize: 11, fontFamily: Fonts.semiBold, color: '#9b8cc4' },
   modalNote: { fontSize: 11, fontFamily: Fonts.medium, color: '#9b8cc4', marginTop: 2 },
   modalAmt: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
-  modalTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#b0a3d4', marginTop: 2 },
+  modalTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#c4b5fd', marginTop: 2 },
 });

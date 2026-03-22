@@ -310,5 +310,5 @@ const styles = StyleSheet.create({
   },
   nextBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
   skipBtn: { alignItems: 'center', paddingVertical: 10 },
-  skipText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  skipText: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.semiBold },
 });

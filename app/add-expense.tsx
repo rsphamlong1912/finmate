@@ -1,25 +1,14 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, Platform, ScrollView
+  StyleSheet, Alert, Platform, ScrollView, Modal
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../hooks/useAuth';
 import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
-import { ExpenseCategory } from '../types';
+import { useCategories } from '../context/CategoriesContext';
 import { formatVND, parseVND } from '../lib/vnd';
-
-const CATEGORIES: { id: ExpenseCategory; icon: string; label: string }[] = [
-  { id: 'food', icon: '🍜', label: 'Ăn uống' },
-  { id: 'transport', icon: '🚗', label: 'Di chuyển' },
-  { id: 'shopping', icon: '🛍', label: 'Mua sắm' },
-  { id: 'bills', icon: '💡', label: 'Hóa đơn' },
-  { id: 'health', icon: '💊', label: 'Sức khỏe' },
-  { id: 'entertainment', icon: '🎮', label: 'Giải trí' },
-  { id: 'other', icon: '📦', label: 'Khác' },
-];
 
 const QUICK_AMOUNTS = [
   { label: '20k', value: 20_000 },
@@ -30,14 +19,24 @@ const QUICK_AMOUNTS = [
   { label: '1tr', value: 1_000_000 },
 ];
 
+const EMOJI_OPTIONS = ['🍜','🚗','🛍','💡','💊','🎮','📦','☕','🎓','✈️','🏠','🐾','🎁','💪','🧴','🍕','🎵','📱','🏋️','🌿'];
+const COLOR_OPTIONS = ['#E8593C','#378ADD','#D4537E','#BA7517','#1D9E75','#7F77DD','#888780','#E67E22','#16A085','#8E44AD','#2C3E50','#C0392B'];
+
 export default function AddExpenseScreen() {
   const [rawInput, setRawInput] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('food');
+  const [category, setCategory] = useState('food');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
-  const { addExpense } = useExpenses(user?.id);
+  const { addExpense } = useExpenses();
+  const { categories, addCategory, deleteCategory } = useCategories();
   const router = useRouter();
+
+  // New category modal
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newEmoji, setNewEmoji] = useState('📌');
+  const [newColor, setNewColor] = useState('#888780');
+  const [savingCat, setSavingCat] = useState(false);
 
   const amount = parseVND(rawInput);
 
@@ -53,6 +52,29 @@ export default function AddExpenseScreen() {
     else router.back();
   };
 
+  const handleDeleteCategory = (cat: { id: string; name: string; is_default: boolean }) => {
+    if (cat.is_default) return;
+    Alert.alert('Xóa danh mục', `Xóa "${cat.name}"?`, [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Xóa', style: 'destructive', onPress: async () => {
+        if (category === cat.id) setCategory('other');
+        await deleteCategory(cat.id);
+      }},
+    ]);
+  };
+
+  const handleAddCategory = async () => {
+    if (!newName.trim()) return;
+    setSavingCat(true);
+    const { error } = await addCategory({ name: newName.trim(), emoji: newEmoji, color: newColor });
+    setSavingCat(false);
+    if (error) { Alert.alert('Lỗi', 'Không thể tạo danh mục'); return; }
+    setShowNewCat(false);
+    setNewName('');
+    setNewEmoji('📌');
+    setNewColor('#888780');
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -66,13 +88,11 @@ export default function AddExpenseScreen() {
         {/* ── HEADER ── */}
         <View style={styles.header}>
           <View style={styles.headerCircle} />
-
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← Quay lại</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Thêm chi tiêu</Text>
 
-          {/* Amount input */}
           <View style={styles.amountRow}>
             <TextInput
               style={styles.amountInput}
@@ -92,7 +112,6 @@ export default function AddExpenseScreen() {
 
           <Text style={styles.amountHint}>Nhập số tiền (VD: 50k, 1.5tr)</Text>
 
-          {/* Quick amounts */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.quickRow}>
               {QUICK_AMOUNTS.map(a => (
@@ -112,35 +131,35 @@ export default function AddExpenseScreen() {
 
         {/* ── BODY ── */}
         <View style={styles.body}>
-
-          {/* Note */}
-          <Text style={styles.sectionLabel}>Ghi chú</Text>
+          <Text style={styles.sectionLabel}>Tên chi tiêu</Text>
           <TextInput
             style={styles.noteInput}
             value={note}
             onChangeText={setNote}
-            placeholder="Mô tả chi tiêu (tùy chọn)..."
+            placeholder="Ví dụ: Cà phê Highland, Grab về nhà..."
             placeholderTextColor="#c4b5fd"
           />
 
-          {/* Category pills */}
           <Text style={styles.sectionLabel}>Danh mục</Text>
           <View style={styles.pillsWrap}>
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <TouchableOpacity
                 key={cat.id}
-                style={[styles.pill, category === cat.id && styles.pillActive]}
+                style={[styles.pill, category === cat.id && { backgroundColor: cat.color, borderColor: cat.color }]}
                 onPress={() => setCategory(cat.id)}
+                onLongPress={() => handleDeleteCategory(cat)}
               >
-                <Text style={styles.pillIcon}>{cat.icon}</Text>
+                <Text style={styles.pillIcon}>{cat.emoji}</Text>
                 <Text style={[styles.pillLabel, category === cat.id && styles.pillLabelActive]}>
-                  {cat.label}
+                  {cat.name}
                 </Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity style={styles.pillNew} onPress={() => setShowNewCat(true)}>
+              <Text style={styles.pillNewText}>+ Tạo mới</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Save button */}
           <TouchableOpacity
             style={[styles.saveBtn, (!amount || saving) && styles.saveBtnDisabled]}
             onPress={handleSave}
@@ -152,6 +171,63 @@ export default function AddExpenseScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* ── MODAL TẠO DANH MỤC ── */}
+      <Modal visible={showNewCat} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowNewCat(false)} />
+        <View style={styles.modalSheet}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Tạo danh mục mới</Text>
+
+          <View style={styles.modalPreview}>
+            <Text style={{ fontSize: 28 }}>{newEmoji}</Text>
+            <Text style={[styles.modalPreviewName, { color: newColor }]}>{newName || 'Tên danh mục'}</Text>
+          </View>
+
+          <TextInput
+            style={styles.modalInput}
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="Tên danh mục..."
+            placeholderTextColor="#c4b5fd"
+            maxLength={20}
+          />
+
+          <Text style={styles.modalSub}>Chọn icon</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 4 }}>
+              {EMOJI_OPTIONS.map(e => (
+                <TouchableOpacity
+                  key={e}
+                  style={[styles.emojiBtn, newEmoji === e && styles.emojiBtnActive]}
+                  onPress={() => setNewEmoji(e)}
+                >
+                  <Text style={{ fontSize: 22 }}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+
+          <Text style={styles.modalSub}>Chọn màu</Text>
+          <View style={styles.colorRow}>
+            {COLOR_OPTIONS.map(c => (
+              <TouchableOpacity
+                key={c}
+                style={[styles.colorDot, { backgroundColor: c }, newColor === c && styles.colorDotActive]}
+                onPress={() => setNewColor(c)}
+              />
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.modalSaveBtn, (!newName.trim() || savingCat) && styles.saveBtnDisabled]}
+            onPress={handleAddCategory}
+            disabled={!newName.trim() || savingCat}
+          >
+            <Text style={styles.saveBtnText}>{savingCat ? 'Đang lưu...' : 'Tạo danh mục'}</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -159,7 +235,6 @@ export default function AddExpenseScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3b1f6e' },
 
-  /* HEADER */
   header: {
     backgroundColor: '#3b1f6e',
     paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
@@ -193,7 +268,6 @@ const styles = StyleSheet.create({
   quickBtnText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
   quickBtnTextActive: { color: '#3b1f6e' },
 
-  /* BODY */
   body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
 
   sectionLabel: {
@@ -209,10 +283,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  /* PILLS */
-  pillsWrap: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24,
-  },
+  pillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: '#fff', borderRadius: 99,
@@ -221,14 +292,17 @@ const styles = StyleSheet.create({
     shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
-  pillActive: {
-    backgroundColor: '#6b4fa8', borderColor: '#6b4fa8',
-  },
   pillIcon: { fontSize: 16 },
   pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
   pillLabelActive: { color: '#fff' },
+  pillNew: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'transparent', borderRadius: 99,
+    paddingVertical: 8, paddingHorizontal: 14,
+    borderWidth: 1.5, borderColor: '#6b4fa8', borderStyle: 'dashed',
+  },
+  pillNewText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
 
-  /* SAVE */
   saveBtn: {
     backgroundColor: '#3b1f6e', borderRadius: 18,
     paddingVertical: 17, alignItems: 'center',
@@ -237,4 +311,38 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.45 },
   saveBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: {
+    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    padding: 24, paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 40, height: 4, borderRadius: 2, backgroundColor: '#e4dff5',
+    alignSelf: 'center', marginBottom: 16,
+  },
+  modalTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 16 },
+  modalPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  modalPreviewName: { fontSize: 18, fontFamily: Fonts.bold },
+  modalInput: {
+    backgroundColor: '#eeeaf8', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.medium,
+    marginBottom: 16, borderWidth: 1.5, borderColor: '#e4dff5',
+  },
+  modalSub: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8', marginBottom: 8 },
+  emojiBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#eeeaf8',
+  },
+  emojiBtnActive: { backgroundColor: '#e4dff5', borderWidth: 2, borderColor: '#6b4fa8' },
+  colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+  colorDot: { width: 32, height: 32, borderRadius: 16 },
+  colorDotActive: { borderWidth: 3, borderColor: '#3b1f6e' },
+  modalSaveBtn: {
+    backgroundColor: '#3b1f6e', borderRadius: 18,
+    paddingVertical: 15, alignItems: 'center',
+  },
 });

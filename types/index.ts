@@ -1,3 +1,5 @@
+export type ExpenseCategory = string;
+
 export type Expense = {
   id: string;
   user_id: string;
@@ -7,14 +9,23 @@ export type Expense = {
   created_at: string;
 };
 
-export type ExpenseCategory =
-  | 'food'
-  | 'transport'
-  | 'shopping'
-  | 'bills'
-  | 'health'
-  | 'entertainment'
-  | 'other';
+export type Category = {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  is_default: boolean;
+};
+
+export const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'food', name: 'Ăn uống', emoji: '🍜', color: '#E8593C', is_default: true },
+  { id: 'transport', name: 'Di chuyển', emoji: '🚗', color: '#378ADD', is_default: true },
+  { id: 'shopping', name: 'Mua sắm', emoji: '🛍', color: '#D4537E', is_default: true },
+  { id: 'bills', name: 'Hóa đơn', emoji: '🧾', color: '#BA7517', is_default: true },
+  { id: 'health', name: 'Sức khỏe', emoji: '💊', color: '#1D9E75', is_default: true },
+  { id: 'entertainment', name: 'Giải trí', emoji: '🎮', color: '#7F77DD', is_default: true },
+  { id: 'other', name: 'Khác', emoji: '📦', color: '#888780', is_default: true },
+];
 
 export type Goal = {
   id: string;

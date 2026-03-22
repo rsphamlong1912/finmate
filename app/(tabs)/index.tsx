@@ -7,20 +7,17 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
-import { CATEGORY_LABELS, CATEGORY_COLORS } from '../../types';
+import { useCategories } from '../../context/CategoriesContext';
 import { formatVND } from '../../lib/vnd';
 import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
 
-const CAT_ICONS: Record<string, string> = {
-  food: '🍜', transport: '🚗', shopping: '🛍',
-  bills: '💡', health: '💊', entertainment: '🎮', other: '📦',
-};
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { totalThisMonth, byCategory, expenses } = useExpenses();
   const { profile, checkAndUpdateStreak } = useProfile();
+  const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const router = useRouter();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -114,9 +111,7 @@ export default function DashboardScreen() {
 
   // Insight cho recap banner
   const topCat = Object.entries(byCategory).sort(([, a], [, b]) => b - a)[0];
-  const topCatName = topCat
-    ? CATEGORY_LABELS[topCat[0] as keyof typeof CATEGORY_LABELS]?.replace(/^.\s/, '') ?? topCat[0]
-    : null;
+  const topCatName = topCat ? getCategoryLabel(topCat[0]) : null;
 
   const pctBudget = Math.round(pct);
 
@@ -132,7 +127,7 @@ export default function DashboardScreen() {
       bodyParts: [{ text: 'Thêm chi tiêu đầu tiên để FinMate bắt đầu phân tích cho bạn.' }] as BodyPart[],
       prompt: '💡 Gợi ý tiết kiệm cho tôi',
       bg: '#f0f4ff', border: '#c7d6ff', titleColor: '#1e3a8a',
-      bodyColor: '#3b5299', badgeBg: '#dbeafe', badgeColor: '#1e40af', ctaColor: '#1e40af',
+      bodyColor: '#3b5299', badgeBg: '#e4dff5', badgeColor: '#1e40af', ctaColor: '#1e40af',
     };
     if (pct >= 90) return {
       emoji: '😬',
@@ -165,7 +160,7 @@ export default function DashboardScreen() {
         { text: 'Tiếp tục phát huy nhé!' },
       ] as BodyPart[],
       prompt: '🎯 Lập kế hoạch ngân sách',
-      bg: '#f0fdf4', border: '#bbf7d0', titleColor: '#14532d',
+      bg: '#f5f3ff', border: '#bbf7d0', titleColor: '#14532d',
       bodyColor: '#166534', badgeBg: '#dcfce7', badgeColor: '#15803d', ctaColor: '#16a34a',
     };
   })();
@@ -310,8 +305,8 @@ export default function DashboardScreen() {
                     <Text style={styles.dayLabel}>{getDayLabel(day)}</Text>
                     <View style={styles.txCard}>
                       {items.map((e, i) => {
-                        const color = CATEGORY_COLORS[e.category as keyof typeof CATEGORY_COLORS] ?? '#6b4fa8';
-                        const catLabel = CATEGORY_LABELS[e.category as keyof typeof CATEGORY_LABELS] ?? e.category;
+                        const color = getCategoryColor(e.category);
+                        const catLabel = getCategoryLabel(e.category);
                         const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                         return (
                           <TouchableOpacity
@@ -321,7 +316,7 @@ export default function DashboardScreen() {
                             onPress={() => router.push({ pathname: '/edit-expense', params: { id: e.id, amount: String(e.amount), category: e.category, note: e.note ?? '' } })}
                           >
                             <View style={[styles.txIconWrap, { backgroundColor: color + '1a' }]}>
-                              <Text style={{ fontSize: 20 }}>{CAT_ICONS[e.category] ?? '📦'}</Text>
+                              <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={styles.txCat} numberOfLines={1}>{e.note || catLabel.replace(/^\S+\s/, '')}</Text>
@@ -428,11 +423,11 @@ const styles = StyleSheet.create({
   txBorder: { borderBottomWidth: 1, borderBottomColor: '#f5f3ff' },
   txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   txCat: { fontSize: 13, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  txMeta: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.medium },
+  txMeta: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
   txAmt: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
 
   emptyWrap: { alignItems: 'center', padding: 28 },
-  emptyText: { fontSize: 14, fontFamily: Fonts.bold, color: '#b0a3d4', marginBottom: 14 },
+  emptyText: { fontSize: 14, fontFamily: Fonts.bold, color: '#c4b5fd', marginBottom: 14 },
   emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
   emptyBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
 

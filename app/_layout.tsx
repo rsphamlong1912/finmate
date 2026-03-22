@@ -6,6 +6,7 @@ import { useFonts, PlusJakartaSans_400Regular, PlusJakartaSans_500Medium, PlusJa
 import { ProfileProvider } from '../context/ProfileContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { GoalsProvider } from '../context/GoalsContext';
+import { CategoriesProvider } from '../context/CategoriesContext';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 
@@ -99,7 +100,9 @@ export default function RootLayout() {
     <ProfileProvider>
       <ExpensesProvider>
         <GoalsProvider>
-          <RootNavigator />
+          <CategoriesProvider>
+            <RootNavigator />
+          </CategoriesProvider>
         </GoalsProvider>
       </ExpensesProvider>
     </ProfileProvider>

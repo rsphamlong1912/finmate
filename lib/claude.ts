@@ -39,8 +39,9 @@ export function buildFinancialContext(params: {
   budget?: number;
   goals: Array<{ title: string; saved: number; target: number }>;
   currency: string;
+  recentExpenses?: Array<{ note?: string; category: string; amount: number; date: string }>;
 }): string {
-  const { totalThisMonth, byCategory, budget, goals, currency } = params;
+  const { totalThisMonth, byCategory, budget, goals, currency, recentExpenses } = params;
 
   const categoryLines = Object.entries(byCategory)
     .sort(([, a], [, b]) => b - a)
@@ -51,11 +52,23 @@ export function buildFinancialContext(params: {
     .map((g) => `  - "${g.title}": ${currency}${g.saved}/${currency}${g.target} (${Math.round((g.saved / g.target) * 100)}%)`)
     .join('\n');
 
+  const expenseLines = recentExpenses && recentExpenses.length > 0
+    ? recentExpenses
+        .map((e) => {
+          const d = new Date(e.date);
+          const dateStr = `${d.getDate()}/${d.getMonth() + 1}`;
+          return `  - ${dateStr} | ${e.category}${e.note ? ` | "${e.note}"` : ''}: ${currency}${e.amount.toFixed(0)}`;
+        })
+        .join('\n')
+    : '  (chưa có giao dịch)';
+
   return `
 Ngân sách tháng: ${budget ? `${currency}${budget.toFixed(0)}` : 'chưa đặt'}
 Chi tiêu tháng này: ${currency}${totalThisMonth.toFixed(0)}${budget ? ` (${Math.round((totalThisMonth / budget) * 100)}% ngân sách)` : ''}
 Chi tiêu theo danh mục:
 ${categoryLines || '  (chưa có chi tiêu)'}
+Giao dịch gần đây (ngày | danh mục | ghi chú: số tiền):
+${expenseLines}
 Mục tiêu tiết kiệm:
 ${goalLines || '  (chưa có mục tiêu)'}
   `.trim();

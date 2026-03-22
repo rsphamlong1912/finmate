@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1, shadowRadius: 24, elevation: 10,
   },
   formTitle: { fontSize: 22, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 4 },
-  formSub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium, marginBottom: 24 },
+  formSub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium, marginBottom: 24 },
 
   inputWrap: { marginBottom: 16 },
   inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 6 },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
 
   switchBtn: { alignItems: 'center' },
-  switchText: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.medium },
+  switchText: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
   switchLink: { color: '#6b4fa8', fontFamily: Fonts.extraBold },
 
   footer: {

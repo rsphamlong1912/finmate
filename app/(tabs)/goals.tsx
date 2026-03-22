@@ -357,9 +357,9 @@ const styles = StyleSheet.create({
   goalTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e', flex: 1 },
   doneBadge: { backgroundColor: '#4ade80', borderRadius: 99, paddingHorizontal: 6, paddingVertical: 2 },
   doneBadgeText: { fontSize: 9, color: '#fff', fontFamily: Fonts.extraBold },
-  goalDeadline: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.semiBold, marginTop: 2 },
+  goalDeadline: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.semiBold, marginTop: 2 },
   goalSaved: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  goalTarget: { fontSize: 11, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  goalTarget: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.semiBold },
   barTrack: { backgroundColor: '#f0edfb', borderRadius: 99, height: 6, overflow: 'hidden' },
   barFill: { height: 6, borderRadius: 99, backgroundColor: '#6b4fa8' },
   barFillDone: { backgroundColor: '#4ade80' },
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
 
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8 },
-  emptySub: { fontSize: 14, color: '#b0a3d4', fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 24 },
+  emptySub: { fontSize: 14, color: '#c4b5fd', fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 24 },
   emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 16, paddingHorizontal: 28, paddingVertical: 14 },
   emptyBtnText: { color: '#fff', fontSize: 15, fontFamily: Fonts.extraBold },
 
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
     padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0edfb',
   },
   modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  modalCancel: { fontSize: 15, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  modalCancel: { fontSize: 15, color: '#c4b5fd', fontFamily: Fonts.semiBold },
   modalSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
 
   inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8, marginTop: 16 },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
 
   goalPreview: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 8, borderWidth: 2, borderColor: '#e4dff5' },
   goalPreviewTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#6b4fa8', marginBottom: 4 },
-  goalPreviewSub: { fontSize: 13, color: '#b0a3d4', fontFamily: Fonts.semiBold },
+  goalPreviewSub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.semiBold },
 
   quickAmounts: { flexDirection: 'row', gap: 10, marginTop: 16 },
   quickAmtBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 2, borderColor: '#e4dff5' },
