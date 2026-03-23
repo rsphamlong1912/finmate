@@ -170,7 +170,7 @@ export default function DashboardScreen() {
 
       {/* HEADER — sticky, ngoài ScrollView */}
       <View style={styles.top}>
-          <View style={StyleSheet.absoluteFillObject}>
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
             <Svg width="100%" height="100%">
               <Defs>
                 <Pattern id="grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
@@ -383,14 +383,15 @@ const styles = StyleSheet.create({
   streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginBottom: 18 },
   streakText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
 
-  progRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
-  progLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold },
-  progPct: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.extraBold },
-  progTrack: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 7 },
-  progFill: { height: 6, borderRadius: 99, backgroundColor: '#c4b5fd' },
+
+  progRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  progLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold },
+  progPct: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: Fonts.extraBold },
+  progTrack: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 99, height: 7, overflow: 'hidden', marginBottom: 10 },
+  progFill: { height: 7, borderRadius: 99, backgroundColor: '#c4b5fd' },
   progBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold },
-  reportLink: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.bold },
+  progSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
+  reportLink: { fontSize: 12, color: '#c4b5fd', fontFamily: Fonts.bold },
 
   /* ── BODY ── */
   bottom: { paddingHorizontal: 20, paddingTop: 20 },

@@ -1,8 +1,48 @@
 import { Tabs, Redirect } from 'expo-router';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
+import { useRef, useEffect } from 'react';
+
+function ChatTabButton({ onPress, onLongPress, accessibilityState }: any) {
+  const focused = accessibilityState?.selected;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (focused) {
+      const pulse = Animated.loop(Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ]));
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [focused]);
+
+  const handlePress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, { toValue: 0.86, duration: 90, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 220, friction: 6 }),
+    ]).start();
+    onPress?.();
+  };
+
+  return (
+    <TouchableOpacity onPress={handlePress} onLongPress={onLongPress} style={styles.chatTabWrap} activeOpacity={1}>
+      {focused && (
+        <Animated.View style={[styles.chatGlow, { transform: [{ scale: pulseAnim }] }]} />
+      )}
+      <Animated.View style={[styles.chatTabBtn, focused && styles.chatTabBtnActive, { transform: [{ scale: scaleAnim }] }]}>
+        <Ionicons name="sparkles" size={24} color="#fff" />
+      </Animated.View>
+      <Text style={[styles.chatTabLabel, focused && styles.chatTabLabelActive]}>Chat AI</Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function TabsLayout() {
   const { session, loading } = useAuth();
@@ -39,9 +79,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={focused ? 'chatbubble' : 'chatbubble-outline'} label="Chat AI" focused={focused} />
-          ),
+          tabBarButton: (props) => <ChatTabButton {...props} />,
         }}
       />
       <Tabs.Screen
@@ -96,6 +134,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     paddingTop: 0,
     paddingHorizontal: 0,
+    overflow: 'visible',
   },
   tabBarBg: {
     position: 'absolute',
@@ -141,6 +180,52 @@ const styles = StyleSheet.create({
   topBarActive: {
     backgroundColor: '#6b4fa8',
   },
+  chatTabWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: Platform.OS === 'ios' ? 10 : 6,
+    marginTop: -22,
+  },
+  chatTabBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#6b4fa8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#6b4fa8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 14,
+    marginBottom: 4,
+  },
+  chatTabBtnActive: {
+    backgroundColor: '#5a3d96',
+    shadowOpacity: 0.7,
+  },
+  chatGlow: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 26 : 22,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(107,79,168,0.22)',
+  },
+  chatTabLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.semiBold,
+    color: '#c4b5fd',
+    marginTop: 1,
+  },
+  chatTabLabelActive: {
+    color: '#6b4fa8',
+    fontFamily: Fonts.extraBold,
+  },
+
   label: {
     fontSize: 12,
     fontFamily: Fonts.semiBold,
