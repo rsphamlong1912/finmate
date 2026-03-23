@@ -21,6 +21,63 @@ const QUICK_PROMPTS = [
   '🎯 Lập kế hoạch ngân sách',
 ];
 
+/* ── Skeleton chat bubbles ── */
+const SKELETON_BUBBLES = [
+  { side: 'left',  width: '72%' },
+  { side: 'right', width: '45%' },
+  { side: 'left',  width: '85%' },
+  { side: 'left',  width: '55%' },
+  { side: 'right', width: '60%' },
+  { side: 'left',  width: '78%' },
+] as const;
+
+function ChatSkeleton() {
+  const pulse = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  return (
+    <View style={skeletonStyles.overlay}>
+      <View style={skeletonStyles.list}>
+        {SKELETON_BUBBLES.map((b, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              skeletonStyles.bubble,
+              b.side === 'right' ? skeletonStyles.bubbleRight : skeletonStyles.bubbleLeft,
+              { width: b.width, opacity: pulse },
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const skeletonStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: '#eeeaf8',
+    paddingTop: 16,
+  },
+  list: { paddingHorizontal: 16, gap: 10 },
+  bubble: {
+    height: 44, borderRadius: 18,
+    backgroundColor: '#d4c9f0',
+  },
+  bubbleLeft: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
+  bubbleRight: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
+});
+
 /* ── Typing indicator — 3 chấm nhảy ── */
 function TypingIndicator() {
   const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
@@ -61,6 +118,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [history, setHistory] = useState<Message[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -82,7 +140,7 @@ export default function ChatScreen() {
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
       }
     };
-    load();
+    load().finally(() => setHistoryLoading(false));
   }, [user?.id]);
 
   const send = useCallback(async (text: string) => {
@@ -165,7 +223,6 @@ export default function ChatScreen() {
 
   return (
     <View style={styles.root}>
-
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerOrb1} />
@@ -197,7 +254,7 @@ export default function ChatScreen() {
         keyboardVerticalOffset={10}
       >
         {/* MESSAGES */}
-        <ScrollView
+        {historyLoading ? <ChatSkeleton /> : <ScrollView
           ref={scrollRef}
           style={styles.messages}
           contentContainerStyle={styles.messagesContent}
@@ -257,7 +314,7 @@ export default function ChatScreen() {
               ))}
             </View>
           )}
-        </ScrollView>
+        </ScrollView>}
 
         {/* INPUT BAR */}
         <View style={styles.inputArea}>
