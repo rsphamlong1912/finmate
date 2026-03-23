@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal, Platform
+  TextInput, Alert, Modal
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Fonts } from '../../constants/fonts';
@@ -19,15 +19,21 @@ const QUICK_AMOUNTS = [
 const SUGGESTIONS = ['✈️ Du lịch', '📱 Mua điện thoại', '🚗 Mua xe', '🏠 Mua nhà', '📚 Học phí', '🎁 Quà tặng'];
 
 export default function GoalsScreen() {
-  const { goals, addGoal, addSavings, deleteGoal } = useGoals();
+  const { goals, addGoal, updateGoal, addSavings, deleteGoal } = useGoals();
   const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showEditGoal, setShowEditGoal] = useState(false);
   const [showAddSavings, setShowAddSavings] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [addInput, setAddInput] = useState('');
   const [title, setTitle] = useState('');
   const [targetInput, setTargetInput] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editTargetInput, setEditTargetInput] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const selectedGoal = goals.find(g => g.id === selectedGoalId);
@@ -59,6 +65,26 @@ export default function GoalsScreen() {
     if (selectedGoal && selectedGoal.saved_amount + addAmt >= selectedGoal.target_amount) {
       Alert.alert('🎉 Chúc mừng!', `Bạn đã đạt mục tiêu "${selectedGoal.title}"!`);
     }
+  };
+
+  const handleOpenEdit = (goal: any) => {
+    setEditingGoalId(goal.id);
+    setEditTitle(goal.title);
+    setEditTargetInput(goal.target_amount.toString());
+    setEditDeadline(goal.deadline ?? '');
+    setShowEditGoal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    const amt = parseVND(editTargetInput);
+    if (!editTitle || !amt) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên và số tiền mục tiêu');
+      return;
+    }
+    setSaving(true);
+    await updateGoal(editingGoalId!, { title: editTitle, target_amount: amt, deadline: editDeadline || undefined });
+    setSaving(false);
+    setShowEditGoal(false);
   };
 
   const handleDelete = (id: string, title: string) => {
@@ -125,6 +151,7 @@ export default function GoalsScreen() {
                 <TouchableOpacity
                   key={goal.id}
                   style={styles.goalCard}
+                  onPress={() => handleOpenEdit(goal)}
                   onLongPress={() => handleDelete(goal.id, goal.title)}
                   activeOpacity={0.85}
                 >
@@ -141,7 +168,7 @@ export default function GoalsScreen() {
                       </View>
                       {goal.deadline && (
                         <Text style={styles.goalDeadline}>
-                          🗓 {new Date(goal.deadline).toLocaleDateString('vi-VN')}
+                          Hạn chót: {new Date(goal.deadline).toLocaleDateString('vi-VN')}
                         </Text>
                       )}
                     </View>
@@ -190,6 +217,26 @@ export default function GoalsScreen() {
       {/* ADD GOAL MODAL */}
       <Modal visible={showAddGoal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
+          {/* Date picker overlay — bên trong pageSheet, không phải nested modal */}
+          {showDatePicker && (
+            <TouchableOpacity style={styles.dateOverlay} activeOpacity={1} onPress={() => setShowDatePicker(false)}>
+              <TouchableOpacity style={styles.dateSheet} activeOpacity={1}>
+                <Text style={styles.dateModalTitle}>Chọn hạn chót</Text>
+                <DateTimePicker
+                  value={deadline ? new Date(deadline) : new Date()}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date()}
+                  onChange={(_: DateTimePickerEvent, date?: Date) => {
+                    if (date) setDeadline(date.toISOString().split('T')[0]);
+                  }}
+                />
+                <TouchableOpacity style={styles.datePickerDone} onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.datePickerDoneText}>Xong</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          )}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowAddGoal(false)}>
               <Text style={styles.modalCancel}>Hủy</Text>
@@ -236,20 +283,6 @@ export default function GoalsScreen() {
                   : 'Chọn ngày...'}
               </Text>
             </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={deadline ? new Date(deadline) : new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                onChange={(e: DateTimePickerEvent, date?: Date) => {
-                  setShowDatePicker(Platform.OS === 'ios');
-                  if (e.type === 'set' && date) {
-                    setDeadline(date.toISOString().split('T')[0]);
-                  }
-                }}
-              />
-            )}
 
             <Text style={[styles.inputLabel, { marginTop: 24 }]}>Gợi ý nhanh</Text>
             <View style={styles.suggestions}>
@@ -263,6 +296,60 @@ export default function GoalsScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+          </KeyboardAwareScrollView>
+        </View>
+      </Modal>
+
+      {/* EDIT GOAL MODAL */}
+      <Modal visible={showEditGoal} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modal}>
+          {showEditDatePicker && (
+            <TouchableOpacity style={styles.dateOverlay} activeOpacity={1} onPress={() => setShowEditDatePicker(false)}>
+              <TouchableOpacity style={styles.dateSheet} activeOpacity={1}>
+                <Text style={styles.dateModalTitle}>Chọn hạn chót</Text>
+                <DateTimePicker
+                  value={editDeadline ? new Date(editDeadline) : new Date()}
+                  mode="date"
+                  display="spinner"
+                  minimumDate={new Date()}
+                  onChange={(_: DateTimePickerEvent, date?: Date) => {
+                    if (date) setEditDeadline(date.toISOString().split('T')[0]);
+                  }}
+                />
+                <TouchableOpacity style={styles.datePickerDone} onPress={() => setShowEditDatePicker(false)}>
+                  <Text style={styles.datePickerDoneText}>Xong</Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          )}
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowEditGoal(false)}>
+              <Text style={styles.modalCancel}>Hủy</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Chỉnh sửa mục tiêu</Text>
+            <TouchableOpacity onPress={handleSaveEdit} disabled={saving}>
+              <Text style={[styles.modalSave, saving && { opacity: 0.5 }]}>
+                {saving ? 'Đang lưu...' : 'Lưu'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <KeyboardAwareScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled" enableOnAndroid>
+            <Text style={styles.inputLabel}>Tên mục tiêu</Text>
+            <TextInput style={styles.input} value={editTitle} onChangeText={setEditTitle} placeholder="VD: Du lịch Nhật, Mua iPhone..." placeholderTextColor="#c4b5fd" autoFocus />
+            <Text style={styles.inputLabel}>Số tiền mục tiêu (₫)</Text>
+            <TextInput style={styles.input} value={editTargetInput} onChangeText={setEditTargetInput} placeholder="VD: 5tr, 10tr, 500k" placeholderTextColor="#c4b5fd" keyboardType="numeric" />
+            {parseVND(editTargetInput) > 0 && <Text style={styles.inputPreview}>{formatVND(parseVND(editTargetInput))}</Text>}
+            <Text style={styles.inputLabel}>Hạn chót (tùy chọn)</Text>
+            <TouchableOpacity style={styles.input} onPress={() => setShowEditDatePicker(true)}>
+              <Text style={{ fontSize: 16, fontFamily: Fonts.semiBold, color: editDeadline ? '#3b1f6e' : '#c4b5fd' }}>
+                {editDeadline ? new Date(editDeadline).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Chọn ngày...'}
+              </Text>
+            </TouchableOpacity>
+            {editDeadline ? (
+              <TouchableOpacity onPress={() => setEditDeadline('')}>
+                <Text style={{ fontSize: 12, color: '#ef4444', fontFamily: Fonts.semiBold, marginTop: 6 }}>Xóa hạn chót</Text>
+              </TouchableOpacity>
+            ) : null}
           </KeyboardAwareScrollView>
         </View>
       </Modal>
@@ -395,6 +482,11 @@ const styles = StyleSheet.create({
   modalCancel: { fontSize: 15, color: '#c4b5fd', fontFamily: Fonts.semiBold },
   modalSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
 
+  dateOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', zIndex: 99 },
+  dateSheet: { backgroundColor: '#fff', borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  dateModalTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8 },
+  datePickerDone: { marginTop: 12, backgroundColor: '#6b4fa8', borderRadius: 14, paddingHorizontal: 40, paddingVertical: 12 },
+  datePickerDoneText: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#fff' },
   inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8, marginTop: 16 },
   input: { backgroundColor: '#fff', borderRadius: 16, padding: 14, fontSize: 16, color: '#3b1f6e', fontFamily: Fonts.semiBold, borderWidth: 2, borderColor: '#e4dff5' },
   inputPreview: { fontSize: 13, color: '#6b4fa8', fontFamily: Fonts.bold, marginTop: 6 },

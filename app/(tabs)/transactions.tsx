@@ -7,7 +7,7 @@ import { Expense } from '../../types';
 import { useCategories } from '../../context/CategoriesContext';
 import { formatVND } from '../../lib/vnd';
 
-const FILTERS = ['Tất cả', 'Tuần này', 'Tháng này'];
+const FILTERS = ['Hôm nay', 'Tuần này', 'Tháng này', 'Tháng trước'];
 
 export default function TransactionsScreen() {
   const { expenses, deleteExpense } = useExpenses();
@@ -15,14 +15,22 @@ export default function TransactionsScreen() {
   const [filter, setFilter] = useState('Tháng này');
   const router = useRouter();
 
+  const now = new Date();
   const filtered = expenses.filter(e => {
     const d = new Date(e.created_at);
-    const now = new Date();
+    if (filter === 'Hôm nay') {
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    }
     if (filter === 'Tuần này') {
-      const w = new Date(); w.setDate(now.getDate() - 7); return d >= w;
+      const w = new Date(now); w.setDate(now.getDate() - 6); w.setHours(0,0,0,0); return d >= w;
     }
     if (filter === 'Tháng này') {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }
+    if (filter === 'Tháng trước') {
+      const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      return d.getMonth() === pm && d.getFullYear() === py;
     }
     return true;
   });
@@ -81,16 +89,19 @@ export default function TransactionsScreen() {
         </View>
       </View>
 
-      <View style={styles.filters}>
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f}
-            style={[styles.filterBtn, filter === f && styles.filterActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.segmentWrap}>
+        <View style={styles.segment}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.segmentItem, filter === f && styles.segmentActive]}
+              onPress={() => setFilter(f)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.segmentText, filter === f && styles.segmentTextActive]}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -158,11 +169,12 @@ const styles = StyleSheet.create({
   totalAmt: { fontSize: 28, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: -0.5, marginBottom: 4 },
   totalCount: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.semiBold },
 
-  filters: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingVertical: 16, backgroundColor: '#eeeaf8' },
-  filterBtn: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', borderWidth: 2, borderColor: '#e4dff5' },
-  filterActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  filterText: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4' },
-  filterTextActive: { color: '#fff' },
+  segmentWrap: { backgroundColor: '#eeeaf8', paddingHorizontal: 20, paddingVertical: 14 },
+  segment: { flexDirection: 'row', backgroundColor: '#ddd8f0', borderRadius: 14, padding: 4 },
+  segmentItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+  segmentActive: { backgroundColor: '#fff', shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 3 },
+  segmentText: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4' },
+  segmentTextActive: { color: '#3b1f6e' },
 
   scroll: { flex: 1, paddingHorizontal: 20, backgroundColor: '#eeeaf8' },
   group: { marginBottom: 12, marginTop: 4 },

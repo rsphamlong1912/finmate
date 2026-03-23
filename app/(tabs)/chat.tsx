@@ -1,8 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator,
-  KeyboardAvoidingView, Platform, ScrollView
+  StyleSheet, Animated,
+  KeyboardAvoidingView, Platform, ScrollView, Share
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
@@ -13,7 +13,7 @@ import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/c
 import { supabase } from '../../lib/supabase';
 import { DEFAULT_CATEGORIES } from '../../types';
 
-type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; };
+type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; timestamp?: Date; };
 
 const QUICK_PROMPTS = [
   '📊 Phân tích chi tiêu tháng này',
@@ -22,14 +22,43 @@ const QUICK_PROMPTS = [
   '🎯 Lập kế hoạch ngân sách',
 ];
 
+/* ── Typing indicator — 3 chấm nhảy ── */
+function TypingIndicator() {
+  const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
+
+  useEffect(() => {
+    const anims = dots.map((dot, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 150),
+          Animated.timing(dot, { toValue: -5, duration: 280, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0, duration: 280, useNativeDriver: true }),
+          Animated.delay(500),
+        ])
+      )
+    );
+    anims.forEach(a => a.start());
+    return () => anims.forEach(a => a.stop());
+  }, []);
+
+  return (
+    <View style={styles.typingWrap}>
+      {dots.map((dot, i) => (
+        <Animated.View key={i} style={[styles.typingDot, { transform: [{ translateY: dot }] }]} />
+      ))}
+    </View>
+  );
+}
+
 export default function ChatScreen() {
   const { user, session } = useAuth();
-  useExpenses(user?.id); // keep hook alive for other screens
+  useExpenses(user?.id);
   const { goals } = useGoals();
   const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([{
     id: 'welcome', role: 'assistant',
     text: 'Tớ đây! 🫡 Người bạn hiếm hoi không phán xét cậu tiêu nhiều. Cần giúp gì không?',
+    timestamp: new Date(),
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,15 +68,19 @@ export default function ChatScreen() {
   useEffect(() => {
     if (!user?.id) return;
     const load = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('chat_messages')
-        .select('id, role, content')
+        .select('id, role, content, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .order('created_at', { ascending: true });
+      if (error) {
+        console.error('[chat] load history error:', error.message, error.code);
+        return;
+      }
       if (data && data.length > 0) {
-        setMessages(data.map(r => ({ id: r.id, role: r.role as 'user' | 'assistant', text: r.content })));
-        setHistory(data.map(r => ({ role: r.role as 'user' | 'assistant', content: r.content })));
+        const welcome: ChatMsg = { id: 'welcome', role: 'assistant', text: 'Tớ đây! 🫡 Người bạn hiếm hoi không phán xét cậu tiêu nhiều. Cần giúp gì không?', timestamp: new Date() };
+        setMessages([welcome, ...data.map(r => ({ id: r.id, role: r.role as 'user' | 'assistant', text: r.content, timestamp: new Date(r.created_at) }))]);
+        setHistory(data.slice(-10).map(r => ({ role: r.role as 'user' | 'assistant', content: r.content })));
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
       }
     };
@@ -57,14 +90,13 @@ export default function ChatScreen() {
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
     setInput('');
-    const userMsg: ChatMsg = { id: Date.now().toString(), role: 'user', text };
+    const userMsg: ChatMsg = { id: Date.now().toString(), role: 'user', text, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
 
     const updated: Message[] = [...history, { role: 'user', content: text }];
     try {
-      // Fetch expenses + custom categories mới nhất
       const [{ data: freshExpenses }, { data: customCats }] = await Promise.all([
         supabase.from('expenses').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50),
         supabase.from('user_categories').select('*').eq('user_id', user?.id),
@@ -103,7 +135,7 @@ export default function ChatScreen() {
         })),
       });
       const aiText = await sendMessageToClaude(updated, ctx, session?.access_token ?? '');
-      const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText };
+      const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
       setHistory([...updated, { role: 'assistant', content: aiText }]);
       if (user?.id) {
@@ -116,6 +148,7 @@ export default function ChatScreen() {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(), role: 'assistant',
         text: 'Xin lỗi, tớ đang gặp sự cố 😅 Cậu thử lại sau nhé!',
+        timestamp: new Date(),
       }]);
     } finally {
       setLoading(false);
@@ -123,17 +156,31 @@ export default function ChatScreen() {
     }
   }, [loading, history, session, user, goals, profile]);
 
+  const fmtTime = (d?: Date) => {
+    if (!d) return '';
+    return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const copyMsg = (text: string) => {
+    Share.share({ message: text });
+  };
+
   return (
     <View style={styles.root}>
 
       {/* HEADER */}
       <View style={styles.header}>
+        <View style={styles.headerOrb1} />
+        <View style={styles.headerOrb2} />
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrap}>
-            <Text style={{ fontSize: 24 }}>💬</Text>
+            <View style={styles.avatarInner}>
+              <Text style={styles.avatarMonogram}>FM</Text>
+            </View>
+            <View style={styles.avatarOnline} />
           </View>
           <View>
-            <Text style={styles.headerTitle}>FinMate</Text>
+            <Text style={styles.headerTitle}>FinMate AI</Text>
             <View style={styles.statusRow}>
               <View style={styles.statusDot} />
               <Text style={styles.statusText}>Đang hoạt động</Text>
@@ -146,7 +193,6 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* KEYBOARD AVOIDING — chỉ bọc messages + input */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -168,15 +214,24 @@ export default function ChatScreen() {
             ]}>
               {msg.role === 'assistant' && (
                 <View style={styles.bubbleAvatar}>
-                  <Text style={{ fontSize: 14 }}>💬</Text>
+                  <Text style={styles.bubbleAvatarText}>FM</Text>
                 </View>
               )}
-              <View style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
-                <Text style={[
-                  styles.bubbleText,
-                  msg.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAI
-                ]}>
-                  {msg.text}
+              <View style={{ maxWidth: '75%' }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onLongPress={() => copyMsg(msg.text)}
+                  style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}
+                >
+                  <Text style={[
+                    styles.bubbleText,
+                    msg.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAI
+                  ]}>
+                    {msg.text}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.bubbleTime, msg.role === 'user' && styles.bubbleTimeUser]}>
+                  {fmtTime(msg.timestamp)}
                 </Text>
               </View>
             </View>
@@ -185,10 +240,10 @@ export default function ChatScreen() {
           {loading && (
             <View style={[styles.bubbleWrap, styles.bubbleWrapAI]}>
               <View style={styles.bubbleAvatar}>
-                <Text style={{ fontSize: 14 }}>💬</Text>
+                <Text style={styles.bubbleAvatarText}>FM</Text>
               </View>
-              <View style={[styles.bubble, styles.bubbleAI, { paddingHorizontal: 20 }]}>
-                <ActivityIndicator size="small" color="#6b4fa8" />
+              <View style={[styles.bubble, styles.bubbleAI]}>
+                <TypingIndicator />
               </View>
             </View>
           )}
@@ -206,7 +261,7 @@ export default function ChatScreen() {
           )}
         </ScrollView>
 
-        {/* INPUT BAR — nằm trong KeyboardAvoidingView nên tự đẩy lên */}
+        {/* INPUT BAR */}
         <View style={styles.inputArea}>
           <View style={styles.inputRow}>
             <TextInput
@@ -239,18 +294,23 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#3b1f6e',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 16,
+    backgroundColor: '#2d1660',
+    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
     borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    overflow: 'hidden',
   },
+  headerOrb1: { position: 'absolute', top: -30, right: 60, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(107,79,168,0.5)' },
+  headerOrb2: { position: 'absolute', top: 20, right: -20, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(196,181,253,0.15)' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatarWrap: {
-    width: 44, height: 44, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  avatarWrap: { position: 'relative' },
+  avatarInner: {
+    width: 46, height: 46, borderRadius: 15,
+    backgroundColor: '#6b4fa8',
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
   },
+  avatarMonogram: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: 0.5 },
+  avatarOnline: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#4ade80', borderWidth: 2, borderColor: '#2d1660' },
   headerTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 2 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ade80' },
@@ -265,18 +325,19 @@ const styles = StyleSheet.create({
   headerBadgeText: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontFamily: Fonts.semiBold, letterSpacing: 0.3 },
 
   messages: { flex: 1 },
-  messagesContent: { padding: 16, gap: 12, paddingBottom: 8 },
+  messagesContent: { padding: 16, gap: 4, paddingBottom: 8 },
 
-  bubbleWrap: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  bubbleWrap: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 8 },
   bubbleWrapUser: { justifyContent: 'flex-end' },
   bubbleWrapAI: { justifyContent: 'flex-start' },
   bubbleAvatar: {
     width: 30, height: 30, borderRadius: 10,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#6b4fa8', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 6, elevation: 3,
+    shadowOpacity: 0.2, shadowRadius: 6, elevation: 3,
   },
-  bubble: { maxWidth: '75%', borderRadius: 20, padding: 14 },
+  bubbleAvatarText: { fontSize: 9, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: 0.3 },
+  bubble: { borderRadius: 20, padding: 14 },
   bubbleUser: { backgroundColor: '#6b4fa8', borderBottomRightRadius: 6 },
   bubbleAI: {
     backgroundColor: '#fff', borderBottomLeftRadius: 6,
@@ -286,9 +347,14 @@ const styles = StyleSheet.create({
   bubbleText: { fontSize: 14, lineHeight: 22 },
   bubbleTextUser: { color: '#fff', fontFamily: Fonts.semiBold },
   bubbleTextAI: { color: '#3b1f6e', fontFamily: Fonts.medium },
+  bubbleTime: { fontSize: 10, color: '#b0a4d4', fontFamily: Fonts.medium, marginTop: 4, marginLeft: 4 },
+  bubbleTimeUser: { textAlign: 'right', marginRight: 4 },
 
-  quickWrap: { marginTop: 8, gap: 8 },
-  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#c4b5fd', marginBottom: 4 },
+  typingWrap: { flexDirection: 'row', gap: 5, paddingVertical: 4, paddingHorizontal: 2 },
+  typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#6b4fa8' },
+
+  quickWrap: { marginTop: 8 },
+  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#c4b5fd', marginBottom: 10 },
   quickBtn: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

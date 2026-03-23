@@ -7,6 +7,7 @@ type GoalsContextType = {
   goals: Goal[];
   loading: boolean;
   addGoal: (data: { title: string; target_amount: number; deadline?: string }) => Promise<{ error: any }>;
+  updateGoal: (id: string, data: { title: string; target_amount: number; deadline?: string }) => Promise<{ error: any }>;
   addSavings: (goalId: string, amount: number) => Promise<{ error: any }>;
   deleteGoal: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
@@ -57,6 +58,20 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const updateGoal = async (id: string, data: { title: string; target_amount: number; deadline?: string }) => {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...data, deadline: data.deadline ?? null } : g));
+    const { error } = await supabase.from('goals').update({
+      title: data.title,
+      target_amount: data.target_amount,
+      deadline: data.deadline ?? null,
+    }).eq('id', id);
+    if (error) {
+      await fetchGoals();
+      return { error };
+    }
+    return { error: null };
+  };
+
   const addSavings = async (goalId: string, amount: number) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return { error: 'Goal not found' };
@@ -96,7 +111,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   return (
     <GoalsContext.Provider value={{
       goals, loading,
-      addGoal, addSavings, deleteGoal,
+      addGoal, updateGoal, addSavings, deleteGoal,
       refetch: fetchGoals,
     }}>
       {children}

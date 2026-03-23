@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
 import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryLine, VictoryTheme, VictoryArea, VictoryLabel } from 'victory-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Fonts } from '../../constants/fonts';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
@@ -8,49 +9,43 @@ import { formatVNDShort, formatVND } from '../../lib/vnd';
 import { useCategories } from '../../context/CategoriesContext';
 
 const { width } = Dimensions.get('window');
-const FILTERS = ['Ngày', 'Tuần', 'Tháng'];
+const FILTERS = ['Ngày', 'Tuần', 'Tháng', 'Tùy chỉnh'];
 
 function toLocalDateStr(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
-const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-
-/* ── So sánh hôm nay vs hôm qua ── */
-function DayCompareCard({ expenses, total }: { expenses: any[]; total: number }) {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = toLocalDateStr(yesterday);
-  const yesterdayTotal = expenses
-    .filter(e => toLocalDateStr(new Date(e.created_at)) === yStr)
+/* ── So sánh ngày được chọn vs ngày trước đó ── */
+function DayCompareCard({ expenses, total, selectedDay, todayStr }: { expenses: any[]; total: number; selectedDay: Date; todayStr: string }) {
+  const isToday = toLocalDateStr(selectedDay) === todayStr;
+  const prevDay = new Date(selectedDay);
+  prevDay.setDate(selectedDay.getDate() - 1);
+  const prevStr = toLocalDateStr(prevDay);
+  const prevTotal = expenses
+    .filter(e => toLocalDateStr(new Date(e.created_at)) === prevStr)
     .reduce((s: number, e: any) => s + e.amount, 0);
-  const diff = total - yesterdayTotal;
+  const diff = total - prevTotal;
   const isMore = diff > 0;
   const isSame = diff === 0;
+  const dayLabel = isToday ? 'Hôm nay' : `${selectedDay.getDate()}/${selectedDay.getMonth()+1}`;
+  const prevLabel = isToday ? 'hôm qua' : `${prevDay.getDate()}/${prevDay.getMonth()+1}`;
   return (
     <View style={styles.dayCompareCard}>
-      <Text style={{ fontSize: 22 }}>{yesterdayTotal === 0 ? '📅' : isMore ? '📈' : '📉'}</Text>
+      <Text style={{ fontSize: 22 }}>{prevTotal === 0 ? '📅' : isMore ? '📈' : '📉'}</Text>
       <View style={{ flex: 1 }}>
         <Text style={styles.dayCompareText}>
-          {yesterdayTotal === 0 ? 'Hôm qua không có giao dịch'
-            : isSame ? 'Hôm nay bằng hôm qua'
-            : isMore ? `Hôm nay nhiều hơn hôm qua ${formatVNDShort(Math.abs(diff))}`
-            : `Hôm nay ít hơn hôm qua ${formatVNDShort(Math.abs(diff))}`}
+          {prevTotal === 0 ? `Ngày ${prevLabel} không có giao dịch`
+            : isSame ? `${dayLabel} bằng ${prevLabel}`
+            : isMore ? `${dayLabel} nhiều hơn ${prevLabel} ${formatVNDShort(Math.abs(diff))}`
+            : `${dayLabel} ít hơn ${prevLabel} ${formatVNDShort(Math.abs(diff))}`}
         </Text>
-        {yesterdayTotal > 0 && <Text style={styles.dayCompareSub}>Hôm qua: {formatVNDShort(yesterdayTotal)}</Text>}
+        {prevTotal > 0 && <Text style={styles.dayCompareSub}>Ngày {prevLabel}: {formatVNDShort(prevTotal)}</Text>}
       </View>
-      {yesterdayTotal > 0 && !isSame && (
+      {prevTotal > 0 && !isSame && (
         <View style={[styles.dayCompareBadge, { backgroundColor: isMore ? '#fef3c7' : '#eeeaf8' }]}>
           <Text style={[styles.dayCompareBadgeText, { color: isMore ? '#92400e' : '#065f46' }]}>
-            {isMore ? '+' : '-'}{Math.abs(Math.round((diff / yesterdayTotal) * 100))}%
+            {isMore ? '+' : '-'}{Math.abs(Math.round((diff / prevTotal) * 100))}%
           </Text>
         </View>
       )}
@@ -58,15 +53,13 @@ function DayCompareCard({ expenses, total }: { expenses: any[]; total: number })
   );
 }
 
-/* ── So sánh tuần này vs tuần trước ── */
+/* ── So sánh 7 ngày gần nhất vs 7 ngày trước đó ── */
 function WeekCompareCard({ expenses, total }: { expenses: any[]; total: number }) {
   const now = new Date();
-  const lastWeekStart = getWeekStart(now);
-  lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-  const lastWeekEnd = new Date(lastWeekStart);
-  lastWeekEnd.setDate(lastWeekStart.getDate() + 7);
+  const prev7Start = new Date(now); prev7Start.setDate(now.getDate() - 14); prev7Start.setHours(0,0,0,0);
+  const prev7End = new Date(now); prev7End.setDate(now.getDate() - 7); prev7End.setHours(0,0,0,0);
   const lastWeekTotal = expenses
-    .filter(e => { const d = new Date(e.created_at); return d >= lastWeekStart && d < lastWeekEnd; })
+    .filter(e => { const d = new Date(e.created_at); return d >= prev7Start && d < prev7End; })
     .reduce((s: number, e: any) => s + e.amount, 0);
   const diff = total - lastWeekTotal;
   const isMore = diff > 0;
@@ -108,6 +101,16 @@ export default function StatsScreen() {
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Ngày');
   const [showDayDetail, setShowDayDetail] = useState(false);
+  const [showCustomDetail, setShowCustomDetail] = useState(false);
+
+  // Custom range
+  const [customStart, setCustomStart] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 6); d.setHours(0,0,0,0); return d; });
+  const [customEnd, setCustomEnd] = useState(() => { const d = new Date(); d.setHours(23,59,59,999); return d; });
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showRangeModal, setShowRangeModal] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
+  const [showDayPicker, setShowDayPicker] = useState(false);
 
   const [now, setNow] = useState(() => new Date());
   const todayStr = toLocalDateStr(now);
@@ -127,15 +130,15 @@ export default function StatsScreen() {
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       const d = new Date(e.created_at);
-      if (filter === 'Ngày') return toLocalDateStr(new Date(e.created_at)) === todayStr;
+      if (filter === 'Ngày') return toLocalDateStr(new Date(e.created_at)) === toLocalDateStr(selectedDay);
       if (filter === 'Tuần') {
-        const ws = getWeekStart(now);
-        const we = new Date(ws); we.setDate(ws.getDate() + 7);
-        return d >= ws && d < we;
+        const ws = new Date(now); ws.setDate(now.getDate() - 6); ws.setHours(0,0,0,0);
+        return d >= ws;
       }
+      if (filter === 'Tùy chỉnh') return d >= customStart && d <= customEnd;
       return d.getMonth() === month && d.getFullYear() === year;
     });
-  }, [expenses, filter, todayStr, month, year]);
+  }, [expenses, filter, selectedDay, todayStr, month, year, customStart, customEnd]);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   const budget = profile?.monthly_budget ?? 10_000_000;
@@ -180,26 +183,51 @@ export default function StatsScreen() {
     return { text: 'Slope đều — chi tiêu ổn định 💪', color: '#6b4fa8', bg: '#f0edfb' };
   }, [expenses]);
 
-  /* ── Bar & Line data ── */
-  const weekBarData = useMemo(() => {
-    const ws = getWeekStart(now);
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(ws); d.setDate(ws.getDate() + i);
-      const dStr = toLocalDateStr(d);
-      const y = expenses.filter(e => toLocalDateStr(new Date(e.created_at)) === dStr).reduce((s, e) => s + e.amount, 0);
-      return { x: DAY_LABELS[i], y: y / 1000 };
+  /* ── Pre-group expenses theo ngày — O(n) một lần, lookup O(1) ── */
+  const expensesByDate = useMemo(() => {
+    const map: Record<string, number> = {};
+    expenses.forEach(e => {
+      const key = toLocalDateStr(new Date(e.created_at));
+      map[key] = (map[key] ?? 0) + e.amount;
     });
+    return map;
   }, [expenses]);
+
+  /* ── Bar & Line data ── */
+  const dayNames = ['CN','T2','T3','T4','T5','T6','T7'];
+
+  const weekBarData = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now); d.setDate(now.getDate() - 6 + i);
+      const dStr = toLocalDateStr(d);
+      return { x: `${d.getDate()}/${d.getMonth()+1}\n${dayNames[d.getDay()]}`, y: (expensesByDate[dStr] ?? 0) / 1000 };
+    });
+  }, [expensesByDate, now]);
 
   const lineData = useMemo(() => {
     let cum = 0;
     return Array.from({ length: now.getDate() }, (_, i) => {
       const d = new Date(year, month, i + 1);
-      const dStr = toLocalDateStr(d);
-      cum += expenses.filter(e => toLocalDateStr(new Date(e.created_at)) === dStr).reduce((s, e) => s + e.amount, 0);
+      cum += expensesByDate[toLocalDateStr(d)] ?? 0;
       return { x: i + 1, y: cum / 1_000_000 };
     });
-  }, [expenses]);
+  }, [expensesByDate, now]);
+
+  /* ── Custom bar data ── */
+  const customBarData = useMemo(() => {
+    const dayMs = 86400000;
+    const diffDays = Math.floor((customEnd.getTime() - customStart.getTime()) / dayMs) + 1;
+    return Array.from({ length: diffDays }, (_, i) => {
+      const d = new Date(customStart); d.setDate(customStart.getDate() + i);
+      const dStr = toLocalDateStr(d);
+      return { x: `${d.getDate()}/${d.getMonth()+1}\n${dayNames[d.getDay()]}`, y: (expensesByDate[dStr] ?? 0) / 1000 };
+    });
+  }, [expensesByDate, customStart, customEnd]);
+
+  const customPeakBar = useMemo(() => {
+    if (customBarData.every(d => d.y === 0)) return null;
+    return customBarData.reduce((max, d) => d.y > max.y ? d : max, customBarData[0]);
+  }, [customBarData]);
 
   /* ── Pie data ── */
   const pieData = useMemo(() => {
@@ -228,7 +256,11 @@ export default function StatsScreen() {
         <Text style={styles.headerSub}>Phân tích chi tiêu theo danh mục và thời gian</Text>
         <View style={styles.filterRow}>
           {FILTERS.map(f => (
-            <TouchableOpacity key={f} style={[styles.filterTab, filter === f && styles.filterTabActive]} onPress={() => setFilter(f)}>
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterTab, filter === f && styles.filterTabActive]}
+              onPress={() => { setFilter(f); if (f === 'Tùy chỉnh') setShowRangeModal(true); }}
+            >
               <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]}>{f}</Text>
             </TouchableOpacity>
           ))}
@@ -241,7 +273,14 @@ export default function StatsScreen() {
         {filter === 'Ngày' && (
           <View style={styles.dayBody}>
             <View style={styles.dayMainCard}>
-              <Text style={styles.dayLbl}>Hôm nay đã tiêu</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={styles.dayLbl}>
+                  {toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay đã tiêu' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}/${selectedDay.getFullYear()}`}
+                </Text>
+                <TouchableOpacity onPress={() => setShowDayPicker(true)} style={styles.editRangeBtn}>
+                  <Text style={styles.editRangeBtnText}>{selectedDay.getDate()}/{selectedDay.getMonth()+1}/{selectedDay.getFullYear()} ›</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.dayAmt}>{formatVND(total)}</Text>
               <View style={styles.dayTrack}>
                 <View style={[styles.dayFill, { width: `${Math.min(periodBudget > 0 ? (total / periodBudget) * 100 : 0, 100)}%` as any, backgroundColor: total > periodBudget ? '#ef4444' : '#6b4fa8' }]} />
@@ -252,27 +291,37 @@ export default function StatsScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.dayRemain, filtered.length > 0 && styles.dayRemainActive]}>
-                  🧾 {filtered.length} giao dịch hôm nay{filtered.length > 0 ? ' →' : ''}
+                  🧾 {filtered.length} giao dịch{toLocalDateStr(selectedDay) === todayStr ? ' hôm nay' : ''}{filtered.length > 0 ? ' →' : ''}
                 </Text>
               </TouchableOpacity>
             </View>
-            <DayCompareCard expenses={expenses} total={total} />
+            {toLocalDateStr(selectedDay) === todayStr && (
+              <DayCompareCard expenses={expenses} total={total} selectedDay={selectedDay} todayStr={todayStr} />
+            )}
             {pieData.length > 0 ? (
-              <View style={styles.dayCatCard}>
-                <Text style={styles.dayCatTitle}>Tiêu vào đâu hôm nay?</Text>
-                {pieData.map(d => (
-                  <View key={d.category} style={styles.dayCatRow}>
-                    <View style={[styles.dayCatDot, { backgroundColor: d.color }]} />
-                    <Text style={styles.dayCatName}>{d.x}</Text>
-                    <Text style={styles.dayCatAmt}>{formatVNDShort(d.y)}</Text>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Tiêu vào đâu hôm nay?' : `Tiêu vào đâu ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}?`}</Text>
+                <View style={styles.chartCard}>
+                  <View style={styles.pieWrap}>
+                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#fff', fontWeight: '700' } }} animate={false} />
+                    <View style={styles.pieLegend}>
+                      {pieData.map(d => (
+                        <View key={d.category} style={styles.legendRow}>
+                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
+                          <Text style={styles.legendName}>{d.x}</Text>
+                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
+                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                ))}
+                </View>
               </View>
             ) : (
               <View style={styles.dayEmpty}>
                 <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
-                <Text style={styles.dayEmptyTitle}>Hôm nay chưa có giao dịch</Text>
-                <Text style={styles.dayEmptySub}>Thêm chi tiêu để xem thống kê</Text>
+                <Text style={styles.dayEmptyTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay chưa có giao dịch' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1} không có giao dịch`}</Text>
+                <Text style={styles.dayEmptySub}>Ghi lại mỗi khoản chi — cậu sẽ ngạc nhiên khi nhìn lại</Text>
               </View>
             )}
             <View style={{ height: 100 }} />
@@ -299,7 +348,7 @@ export default function StatsScreen() {
                       data={weekBarData}
                       style={{ data: { fill: ({ datum }) => peakDay && datum.x === peakDay.x ? '#ef4444' : '#6b4fa8' } }}
                       cornerRadius={{ top: 6 }}
-                      animate={{ duration: 500, onLoad: { duration: 500 } }}
+                      animate={false}
                       labels={({ datum }) => datum.y > 0 ? `${datum.y}k` : ''}
                       labelComponent={
                         <VictoryLabel
@@ -317,7 +366,7 @@ export default function StatsScreen() {
                 <Text style={styles.sectionTitle}>Danh mục chiếm nhiều nhất</Text>
                 <View style={styles.chartCard}>
                   <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={200} height={200} colorScale={pieData.map(d => d.color)} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
+                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#fff', fontWeight: '700' } }} animate={false} />
                     <View style={styles.pieLegend}>
                       {pieData.map(d => (
                         <View key={d.category} style={styles.legendRow}>
@@ -396,7 +445,7 @@ export default function StatsScreen() {
                     <VictoryArea
                       data={lineData}
                       style={{ data: { fill: '#6b4fa8', fillOpacity: 0.08, stroke: '#6b4fa8', strokeWidth: 2.5 } }}
-                      animate={{ duration: 600, onLoad: { duration: 600 } }}
+                      animate={false}
                     />
                   </VictoryChart>
                 )}
@@ -437,7 +486,7 @@ export default function StatsScreen() {
                 <Text style={styles.sectionTitle}>Tiền đi đâu tháng này?</Text>
                 <View style={styles.chartCard}>
                   <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={200} height={200} colorScale={pieData.map(d => d.color)} padAngle={2} labels={() => null} animate={{ duration: 600, onLoad: { duration: 600 } }} style={{ parent: { overflow: 'visible' } }} />
+                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#fff', fontWeight: '700' } }} animate={false} />
                     <View style={styles.pieLegend}>
                       {pieData.map(d => (
                         <View key={d.category} style={styles.legendRow}>
@@ -453,6 +502,93 @@ export default function StatsScreen() {
               </View>
             ) : (
               <View style={styles.empty}><Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text><Text style={styles.emptyTitle}>Chưa có dữ liệu</Text><Text style={styles.emptySub}>Thêm chi tiêu để xem thống kê</Text></View>
+            )}
+
+            <View style={{ height: 100 }} />
+          </View>
+        )}
+
+        {/* ── TÙY CHỈNH ── */}
+        {filter === 'Tùy chỉnh' && (
+          <View style={styles.customBody}>
+            {/* Main card — giống Ngày */}
+            <View style={styles.dayMainCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <Text style={styles.dayLbl}>Tổng chi tiêu</Text>
+                <TouchableOpacity onPress={() => setShowRangeModal(true)} style={styles.editRangeBtn}>
+                  <Text style={styles.editRangeBtnText}>{customStart.getDate()}/{customStart.getMonth()+1} — {customEnd.getDate()}/{customEnd.getMonth()+1} ›</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.dayAmt}>{formatVND(total)}</Text>
+              <TouchableOpacity
+                onPress={() => filtered.length > 0 && setShowCustomDetail(true)}
+                style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.dayRemain, filtered.length > 0 && styles.dayRemainActive]}>
+                  🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Bar chart theo ngày — cuộn ngang */}
+            {customBarData.some(d => d.y > 0) && (
+              <View style={styles.section}>
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionTitle}>Chi tiêu theo ngày</Text>
+                  {customPeakBar && <View style={styles.peakBadge}><Text style={styles.peakBadgeText}>🔴 {customPeakBar.x.split('\n')[0]} cao nhất</Text></View>}
+                </View>
+                <View style={[styles.chartCard, { padding: 0, overflow: 'hidden' }]}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
+                    <VictoryChart
+                      width={Math.max(width - 64, customBarData.length * 52)}
+                      height={230}
+                      theme={VictoryTheme.material}
+                      domainPadding={{ x: 20 }}
+                      padding={{ top: 36, bottom: 40, left: 48, right: 16 }}
+                    >
+                      <VictoryAxis style={{ axis: { stroke: '#e4dff5' }, tickLabels: { fontSize: 10, fill: '#9b8cc4', fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
+                      <VictoryAxis dependentAxis tickFormat={t => `${t}k`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: '#9b8cc4', fontFamily: 'System' }, grid: { stroke: '#f0edfb', strokeDasharray: '4' } }} />
+                      <VictoryBar
+                        data={customBarData}
+                        style={{ data: { fill: ({ datum }) => customPeakBar && datum.x === customPeakBar.x ? '#ef4444' : '#6b4fa8' } }}
+                        cornerRadius={{ top: 6 }}
+                        animate={false}
+                        labels={({ datum }) => datum.y > 0 ? `${datum.y}k` : ''}
+                        labelComponent={<VictoryLabel dy={-4} style={{ fontSize: 9, fill: '#6b4fa8', fontFamily: 'System', fontWeight: '700' }} />}
+                      />
+                    </VictoryChart>
+                  </ScrollView>
+                </View>
+              </View>
+            )}
+
+            {/* Danh mục */}
+            {pieData.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Tiêu vào đâu?</Text>
+                <View style={styles.chartCard}>
+                  <View style={styles.pieWrap}>
+                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#fff', fontWeight: '700' } }} animate={false} />
+                    <View style={styles.pieLegend}>
+                      {pieData.map(d => (
+                        <View key={d.category} style={styles.legendRow}>
+                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
+                          <Text style={styles.legendName}>{d.x}</Text>
+                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
+                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.dayEmpty}>
+                <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
+                <Text style={styles.dayEmptyTitle}>Không có giao dịch</Text>
+                <Text style={styles.dayEmptySub}>trong khoảng thời gian này</Text>
+              </View>
             )}
 
             <View style={{ height: 100 }} />
@@ -494,6 +630,144 @@ export default function StatsScreen() {
           </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* ── Modal chi tiết giao dịch tùy chỉnh ── */}
+      <Modal visible={showCustomDetail} transparent animationType="slide" onRequestClose={() => setShowCustomDetail(false)}>
+        <View style={styles.modalContainer}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowCustomDetail(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {customStart.getDate()}/{customStart.getMonth()+1} — {customEnd.getDate()}/{customEnd.getMonth()+1}/{customEnd.getFullYear()}
+              </Text>
+              <TouchableOpacity onPress={() => setShowCustomDetail(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              {[...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(e => {
+                const catLabel = getCategoryLabel(e.category);
+                const d = new Date(e.created_at);
+                const dateStr = `${d.getDate()}/${d.getMonth()+1} · ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+                const color = getCategoryColor(e.category);
+                return (
+                  <View key={e.id} style={styles.modalItem}>
+                    <View style={[styles.modalItemIcon, { backgroundColor: color + '1a' }]}>
+                      <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || catLabel}</Text>
+                      <Text style={styles.modalItemCat}>{catLabel} · {dateStr}</Text>
+                    </View>
+                    <Text style={[styles.modalItemAmt, { color }]}>-{formatVNDShort(e.amount)}</Text>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal chọn khoảng thời gian (không lồng modal) ── */}
+      <Modal visible={showRangeModal} transparent animationType="slide" onRequestClose={() => { setShowRangeModal(false); setShowStartPicker(false); setShowEndPicker(false); }}>
+        <View style={styles.modalContainer}>
+          <Pressable style={styles.modalOverlay} onPress={() => { setShowRangeModal(false); setShowStartPicker(false); setShowEndPicker(false); }} />
+          <View style={[styles.modalSheet, { maxHeight: '85%' }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {showStartPicker ? 'Từ ngày' : showEndPicker ? 'Đến ngày' : 'Chọn khoảng thời gian'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                if (showStartPicker) { setShowStartPicker(false); }
+                else if (showEndPicker) { setShowEndPicker(false); }
+                else { setShowRangeModal(false); }
+              }}>
+                <Text style={styles.modalClose}>{showStartPicker || showEndPicker ? '← Quay lại' : '✕'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {!showStartPicker && !showEndPicker && (
+              <>
+                <Text style={styles.rangeModalSectionLbl}>Chọn nhanh</Text>
+                <View style={styles.presetRow}>
+                  {[
+                    { label: '3 ngày qua', onPress: () => { const s = new Date(now); s.setDate(now.getDate()-2); s.setHours(0,0,0,0); const e = new Date(now); e.setHours(23,59,59,999); setCustomStart(s); setCustomEnd(e); setShowRangeModal(false); } },
+                { label: '7 ngày qua', onPress: () => { const s = new Date(now); s.setDate(now.getDate()-6); s.setHours(0,0,0,0); const e = new Date(now); e.setHours(23,59,59,999); setCustomStart(s); setCustomEnd(e); setShowRangeModal(false); } },
+                    { label: '30 ngày qua', onPress: () => { const s = new Date(now); s.setDate(now.getDate()-29); s.setHours(0,0,0,0); const e = new Date(now); e.setHours(23,59,59,999); setCustomStart(s); setCustomEnd(e); setShowRangeModal(false); } },
+                    { label: 'Tháng này', onPress: () => { const s = new Date(year, month, 1); const e = new Date(now); e.setHours(23,59,59,999); setCustomStart(s); setCustomEnd(e); setShowRangeModal(false); } },
+                    { label: 'Tháng trước', onPress: () => { const pm = month === 0 ? 11 : month-1; const py = month === 0 ? year-1 : year; const s = new Date(py, pm, 1); const e = new Date(py, pm+1, 0, 23, 59, 59, 999); setCustomStart(s); setCustomEnd(e); setShowRangeModal(false); } },
+                  ].map(p => (
+                    <TouchableOpacity key={p.label} style={styles.presetChip} onPress={p.onPress}>
+                      <Text style={styles.presetChipText}>{p.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.rangeModalSectionLbl}>Hoặc chọn ngày</Text>
+                <View style={styles.customRangeRow}>
+                  <TouchableOpacity style={styles.customDateBtn} onPress={() => setShowStartPicker(true)}>
+                    <Text style={styles.customDateLbl}>Từ ngày</Text>
+                    <Text style={styles.customDateVal}>{customStart.getDate()}/{customStart.getMonth()+1}/{customStart.getFullYear()}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.customRangeSep}>→</Text>
+                  <TouchableOpacity style={styles.customDateBtn} onPress={() => setShowEndPicker(true)}>
+                    <Text style={styles.customDateLbl}>Đến ngày</Text>
+                    <Text style={styles.customDateVal}>{customEnd.getDate()}/{customEnd.getMonth()+1}/{customEnd.getFullYear()}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.dateModalBtn} onPress={() => setShowRangeModal(false)}>
+                  <Text style={styles.dateModalBtnText}>Xem kết quả</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {showStartPicker && (
+              <>
+                <DateTimePicker value={customStart} mode="date" display="spinner" maximumDate={customEnd}
+                  onChange={(_, date) => { if (date) { const d = new Date(date); d.setHours(0,0,0,0); setCustomStart(d); } }} />
+                <TouchableOpacity style={styles.dateModalBtn} onPress={() => setShowStartPicker(false)}>
+                  <Text style={styles.dateModalBtnText}>Xong</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {showEndPicker && (
+              <>
+                <DateTimePicker value={customEnd} mode="date" display="spinner" minimumDate={customStart} maximumDate={new Date()}
+                  onChange={(_, date) => { if (date) { const d = new Date(date); d.setHours(23,59,59,999); setCustomEnd(d); } }} />
+                <TouchableOpacity style={styles.dateModalBtn} onPress={() => setShowEndPicker(false)}>
+                  <Text style={styles.dateModalBtnText}>Xong</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <View style={{ height: 24 }} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Modal chọn ngày (tab Ngày) ── */}
+      <Modal visible={showDayPicker} transparent animationType="fade" onRequestClose={() => setShowDayPicker(false)}>
+        <Pressable style={styles.dateModalOverlay} onPress={() => setShowDayPicker(false)}>
+          <Pressable style={styles.dateModalSheet}>
+            <Text style={styles.dateModalTitle}>Chọn ngày</Text>
+            <DateTimePicker
+              value={selectedDay}
+              mode="date"
+              display="spinner"
+              maximumDate={new Date()}
+              onChange={(_, date) => {
+                if (date) { const d = new Date(date); d.setHours(0,0,0,0); setSelectedDay(d); }
+              }}
+            />
+            <TouchableOpacity style={styles.dateModalBtn} onPress={() => setShowDayPicker(false)}>
+              <Text style={styles.dateModalBtnText}>Xong</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -633,4 +907,29 @@ const styles = StyleSheet.create({
   modalNote: { fontSize: 11, fontFamily: Fonts.medium, color: '#9b8cc4', marginTop: 2 },
   modalAmt: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
   modalTime: { fontSize: 11, fontFamily: Fonts.medium, color: '#c4b5fd', marginTop: 2 },
+
+  /* ── TÙY CHỈNH ── */
+  customBody: { backgroundColor: '#eeeaf8', padding: 20 },
+  customRangeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  customDateBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 16, padding: 14, alignItems: 'center', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1.5, borderColor: '#e4dff5' },
+  customDateLbl: { fontSize: 10, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 },
+  customDateVal: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  customRangeSep: { fontSize: 18, color: '#9b8cc4', fontFamily: Fonts.bold },
+  customSummaryCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, alignItems: 'center', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
+  customSummaryLbl: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
+  customSummaryAmt: { fontSize: 32, fontFamily: Fonts.extraBold, color: '#3b1f6e', letterSpacing: -1, marginBottom: 4 },
+  customSummaryCount: { fontSize: 13, fontFamily: Fonts.medium, color: '#9b8cc4' },
+
+  dateModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  dateModalSheet: { backgroundColor: '#fff', borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  dateModalTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8 },
+  dateModalBtn: { marginTop: 12, backgroundColor: '#6b4fa8', borderRadius: 14, paddingHorizontal: 40, paddingVertical: 12 },
+  dateModalBtnText: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#fff' },
+
+  presetRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  presetChip: { backgroundColor: '#f0edfb', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
+  presetChipText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
+  rangeModalSectionLbl: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  editRangeBtn: { backgroundColor: '#f0edfb', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  editRangeBtnText: { fontSize: 11, fontFamily: Fonts.bold, color: '#6b4fa8' },
 });

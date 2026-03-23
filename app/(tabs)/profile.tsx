@@ -25,6 +25,7 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const [showNameModal, setShowNameModal] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [customBudget, setCustomBudget] = useState('');
 
@@ -72,6 +73,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.avatarCard}
             onPress={() => { setNameInput(profile?.display_name ?? ''); setShowNameModal(true); }}
+            activeOpacity={0.8}
           >
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarText}>{initials}</Text>
@@ -111,7 +113,7 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeIcon}>⭐</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.upgradeTitle}>Nâng lên Pro</Text>
-              <Text style={styles.upgradeSub}>Không giới hạn · 99.000₫/tháng</Text>
+              <Text style={styles.upgradeSub}>Không giới hạn · 29.000₫/tháng</Text>
             </View>
             <Text style={styles.upgradeArrow}>→</Text>
           </TouchableOpacity>
@@ -119,58 +121,25 @@ export default function ProfileScreen() {
           {/* BUDGET */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ngân sách tháng</Text>
-            <View style={styles.budgetCard}>
-
-              {/* Pills */}
-              <View style={styles.pillsRow}>
-                {BUDGET_OPTIONS.map(opt => (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.pill, budget === opt.value && styles.pillActive]}
-                    onPress={() => { updateBudget(opt.value); setCustomBudget(''); }}
-                  >
-                    <Text style={[styles.pillText, budget === opt.value && styles.pillTextActive]}>
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            <TouchableOpacity style={styles.budgetCard} onPress={() => setShowBudgetModal(true)} activeOpacity={0.85}>
+              <View style={styles.budgetSummary}>
+                <View>
+                  <Text style={styles.budgetSummaryLabel}>Tháng này</Text>
+                  <Text style={styles.budgetSummaryAmt}>{formatVND(budget)}</Text>
+                </View>
+                <View style={styles.budgetSummaryRight}>
+                  <Text style={styles.budgetSummaryPct}>{Math.round(pct)}%</Text>
+                  <Text style={styles.budgetSummaryUsed}>đã dùng</Text>
+                </View>
               </View>
-
-              {/* Divider */}
-              <View style={styles.divider} />
-
-              {/* Custom input */}
-              <View style={[styles.customRow, (isCustomBudget || customBudget.length > 0) && styles.customRowActive]}>
-                <Text style={styles.customIcon}>✏️</Text>
-                <TextInput
-                  style={styles.customInput}
-                  value={customBudget}
-                  onChangeText={setCustomBudget}
-                  placeholder="Nhập số khác... (VD: 12tr, 25000000)"
-                  placeholderTextColor="#c4b5fd"
-                  keyboardType="numeric"
-                  returnKeyType="done"
-                  onSubmitEditing={handleCustomBudget}
-                />
-                <Text style={styles.customCur}>₫</Text>
-                {customBudget.length > 0 && parsedCustom > 0 && (
-                  <TouchableOpacity style={styles.customSaveBtn} onPress={handleCustomBudget}>
-                    <Text style={styles.customSaveText}>Lưu</Text>
-                  </TouchableOpacity>
-                )}
+              <View style={styles.budgetTrack}>
+                <View style={[styles.budgetFill, { width: `${Math.min(pct, 100)}%` as any, backgroundColor: pct > 90 ? '#ef4444' : '#6b4fa8' }]} />
               </View>
-
-              {/* Preview */}
-              {customBudget.length > 0 && parsedCustom > 0 && (
-                <Text style={styles.customPreview}>{formatVND(parsedCustom)}/tháng</Text>
-              )}
-
-              <Text style={styles.budgetCurrent}>
-                {isCustomBudget
-                  ? `Tùy chỉnh: ${formatVND(budget)}/tháng · đã dùng ${Math.round(pct)}%`
-                  : `Hiện tại: ${formatVND(budget)}/tháng · đã dùng ${Math.round(pct)}%`}
-              </Text>
-            </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                <Text style={styles.budgetRemain}>Còn lại {formatVND(Math.max(budget - totalThisMonth, 0))}</Text>
+                <Text style={styles.budgetEditHint}>Thay đổi ›</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* SETTINGS */}
@@ -244,6 +213,57 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
+      {/* BUDGET MODAL */}
+      <Modal visible={showBudgetModal} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => { setShowBudgetModal(false); setCustomBudget(''); }}>
+              <Text style={styles.modalCancel}>Đóng</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Ngân sách tháng</Text>
+            <View style={{ width: 50 }} />
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <Text style={styles.inputLabel}>Chọn nhanh</Text>
+            <View style={styles.pillsRow}>
+              {BUDGET_OPTIONS.map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.pill, budget === opt.value && styles.pillActive]}
+                  onPress={() => { updateBudget(opt.value); setCustomBudget(''); setShowBudgetModal(false); }}
+                >
+                  <Text style={[styles.pillText, budget === opt.value && styles.pillTextActive]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.inputLabel, { marginTop: 24 }]}>Hoặc nhập số khác</Text>
+            <View style={[styles.customRow, (isCustomBudget || customBudget.length > 0) && styles.customRowActive]}>
+              <TextInput
+                style={styles.customInput}
+                value={customBudget}
+                onChangeText={setCustomBudget}
+                placeholder="VD: 12tr, 25000000"
+                placeholderTextColor="#c4b5fd"
+                keyboardType="numeric"
+                returnKeyType="done"
+                autoFocus={false}
+                onSubmitEditing={() => { handleCustomBudget(); setShowBudgetModal(false); }}
+              />
+              {customBudget.length > 0 && parsedCustom > 0 ? (
+                <>
+                  <Text style={styles.customPreviewInline}>{formatVND(parsedCustom)}</Text>
+                  <TouchableOpacity style={styles.customSaveBtn} onPress={() => { handleCustomBudget(); setShowBudgetModal(false); }}>
+                    <Text style={styles.customSaveText}>Lưu</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text style={styles.customCur}>₫</Text>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* EDIT NAME MODAL */}
       <Modal visible={showNameModal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
@@ -275,7 +295,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#eeeaf8' },
-  header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' },
+  header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 32, paddingHorizontal: 24, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden' },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
   headerCircle2: { position: 'absolute', bottom: -30, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.04)' },
   headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
@@ -304,21 +324,30 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 12 },
 
   budgetCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
-  pillsRow: { flexDirection: 'row', gap: 7, marginBottom: 12 },
+  budgetSummary: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 },
+  budgetSummaryLabel: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold, marginBottom: 2 },
+  budgetSummaryAmt: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  budgetSummaryRight: { alignItems: 'flex-end' },
+  budgetSummaryPct: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
+  budgetSummaryUsed: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
+  budgetTrack: { height: 6, backgroundColor: '#f0edfb', borderRadius: 99, marginBottom: 6, overflow: 'hidden' },
+  budgetFill: { height: 6, borderRadius: 99 },
+  budgetRemain: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
+  budgetEditHint: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.bold },
+  divider: { height: 1, backgroundColor: '#f0edfb', marginBottom: 14 },
+  budgetPickLabel: { fontSize: 11, fontFamily: Fonts.bold, color: '#9b8cc4', marginBottom: 8 },
+  pillsRow: { flexDirection: 'row', gap: 7, marginBottom: 14 },
   pill: { flex: 1, backgroundColor: '#f0edfb', borderRadius: 99, paddingVertical: 9, alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   pillActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
   pillText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
   pillTextActive: { color: '#fff' },
-  divider: { height: 1, backgroundColor: '#f0edfb', marginBottom: 12 },
-  customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f8f6ff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 2, borderColor: '#e4dff5', marginBottom: 8 },
+  customRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#f8f6ff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 2, borderColor: '#e4dff5' },
   customRowActive: { borderColor: '#6b4fa8', backgroundColor: '#f0edfb' },
-  customIcon: { fontSize: 14 },
-  customInput: { flex: 1, fontSize: 15, fontFamily: Fonts.bold, color: '#3b1f6e', padding: 0 },
-  customCur: { fontSize: 13, color: '#9b8cc4', fontFamily: Fonts.bold },
+  customInput: { flex: 1, fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', padding: 0 },
+  customCur: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.bold },
+  customPreviewInline: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.bold },
   customSaveBtn: { backgroundColor: '#6b4fa8', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
   customSaveText: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#fff' },
-  customPreview: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.bold, marginBottom: 6, paddingLeft: 4 },
-  budgetCurrent: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
 
   settingCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
   settingRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
