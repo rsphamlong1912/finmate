@@ -20,7 +20,7 @@ const QUICK_BUDGETS = [
 ];
 
 export default function OnboardingScreen() {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [budgetInput, setBudgetInput] = useState('10000000');
   const [finishing, setFinishing] = useState(false);
@@ -48,38 +48,7 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.root}>
 
-      {/* ── STEP 1 — Welcome ── */}
-      {step === 0 && (
-        <View style={styles.fullScreen}>
-          <View style={styles.topDark}>
-            <View style={styles.circle1} />
-            <View style={styles.circle2} />
-            <Text style={styles.bigIcon}>💰</Text>
-            <Text style={styles.mainTitle}>Chào mừng đến{'\n'}FinMate</Text>
-            <Text style={styles.mainSub}>Trợ lý tài chính thông minh{'\n'}dành riêng cho bạn</Text>
-          </View>
-          <View style={styles.body}>
-            <Dots total={4} current={0} />
-            <View style={styles.featList}>
-              {[
-                { icon: '📊', text: 'Theo dõi chi tiêu tự động' },
-                { icon: '🎯', text: 'Đặt mục tiêu tiết kiệm' },
-                { icon: '🔥', text: 'Streak hàng ngày động lực' },
-              ].map(f => (
-                <View key={f.text} style={styles.featRow}>
-                  <Text style={styles.featIcon}>{f.icon}</Text>
-                  <Text style={styles.featText}>{f.text}</Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(1)}>
-              <Text style={styles.nextBtnText}>Bắt đầu →</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* ── STEP 2 — Tên ── */}
+      {/* ── STEP 1 — Tên ── */}
       {step === 1 && (
         <View style={styles.fullScreen}>
           <View style={styles.topPurple}>
@@ -89,7 +58,7 @@ export default function OnboardingScreen() {
             <Text style={styles.mainSub}>Để app gọi tên bạn{'\n'}thân thiện hơn</Text>
           </View>
           <View style={styles.body}>
-            <Dots total={4} current={1} />
+            <Dots total={3} current={1} />
             <Text style={styles.inputLabel}>Tên của bạn</Text>
             <TextInput
               style={styles.input}
@@ -135,7 +104,7 @@ export default function OnboardingScreen() {
             )}
           </View>
           <View style={styles.body}>
-            <Dots total={4} current={2} />
+            <Dots total={3} current={2} />
             <Text style={styles.quickLabel}>Gợi ý nhanh</Text>
             <ScrollView
               horizontal
@@ -178,7 +147,7 @@ export default function OnboardingScreen() {
             <Text style={styles.mainSub}>Bắt đầu hành trình tài chính{'\n'}thông minh của bạn</Text>
           </View>
           <View style={styles.body}>
-            <Dots total={4} current={3} />
+            <Dots total={3} current={2} />
             <View style={styles.summaryCard}>
               {name.trim() && (
                 <View style={styles.summaryRow}>
@@ -261,16 +230,6 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginBottom: 24 },
   dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: '#d4c9f0' },
   dotActive: { width: 22, backgroundColor: '#6b4fa8' },
-
-  featList: { gap: 12, marginBottom: 28 },
-  featRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
-  },
-  featIcon: { fontSize: 26 },
-  featText: { fontSize: 15, fontFamily: Fonts.bold, color: '#3b1f6e' },
 
   inputLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8 },
   input: {

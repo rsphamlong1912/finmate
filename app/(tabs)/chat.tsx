@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
-import { useExpenses } from '../../hooks/useExpenses';
 import { useGoals } from '../../context/GoalsContext';
 import { useProfile } from '../../context/ProfileContext';
 import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/claude';
@@ -52,7 +51,6 @@ function TypingIndicator() {
 
 export default function ChatScreen() {
   const { user, session } = useAuth();
-  useExpenses(user?.id);
   const { goals } = useGoals();
   const { profile } = useProfile();
   const [messages, setMessages] = useState<ChatMsg[]>([{
@@ -80,7 +78,7 @@ export default function ChatScreen() {
       if (data && data.length > 0) {
         const welcome: ChatMsg = { id: 'welcome', role: 'assistant', text: 'Tớ đây! 🫡 Người bạn hiếm hoi không phán xét cậu tiêu nhiều. Cần giúp gì không?', timestamp: new Date() };
         setMessages([welcome, ...data.map(r => ({ id: r.id, role: r.role as 'user' | 'assistant', text: r.content, timestamp: new Date(r.created_at) }))]);
-        setHistory(data.slice(-10).map(r => ({ role: r.role as 'user' | 'assistant', content: r.content })));
+        setHistory(data.slice(-4).map(r => ({ role: r.role as 'user' | 'assistant', content: r.content })));
         setTimeout(() => scrollRef.current?.scrollToEnd({ animated: false }), 100);
       }
     };
@@ -98,7 +96,7 @@ export default function ChatScreen() {
     const updated: Message[] = [...history, { role: 'user', content: text }];
     try {
       const [{ data: freshExpenses }, { data: customCats }] = await Promise.all([
-        supabase.from('expenses').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(50),
+        supabase.from('expenses').select('*').eq('user_id', user?.id).order('created_at', { ascending: false }).limit(100),
         supabase.from('user_categories').select('*').eq('user_id', user?.id),
       ]);
 
@@ -127,7 +125,7 @@ export default function ChatScreen() {
         budget: profile?.monthly_budget ?? 0,
         goals: goals.map(g => ({ title: g.title, saved: g.saved_amount, target: g.target_amount })),
         currency: '₫',
-        recentExpenses: fresh.slice(0, 20).map(e => ({
+        recentExpenses: fresh.slice(0, 30).map(e => ({
           note: e.note,
           category: getCatName(e.category),
           amount: e.amount,
@@ -137,7 +135,7 @@ export default function ChatScreen() {
       const aiText = await sendMessageToClaude(updated, ctx, session?.access_token ?? '');
       const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
-      setHistory([...updated, { role: 'assistant', content: aiText }]);
+      setHistory(([...updated, { role: 'assistant' as const, content: aiText }]).slice(-4));
       if (user?.id) {
         await supabase.from('chat_messages').insert([
           { user_id: user.id, role: 'user', content: text },

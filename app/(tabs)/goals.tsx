@@ -99,7 +99,7 @@ export default function GoalsScreen() {
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerCircle} />
-        <Text style={styles.headerTitle}>Mục tiêu 🎯</Text>
+        <Text style={styles.headerTitle}>Mục tiêu</Text>
         <Text style={styles.headerSub}>Đặt mục tiêu tiết kiệm và theo dõi tiến trình</Text>
         {goals.length > 0 && (
           <View style={styles.summaryCard}>

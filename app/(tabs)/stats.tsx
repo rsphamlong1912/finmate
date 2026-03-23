@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable } from 'react-native';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { CoinLoader } from '../../components/CoinLoader';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal, Pressable, Animated } from 'react-native';
 import { VictoryBar, VictoryChart, VictoryAxis, VictoryPie, VictoryLine, VictoryTheme, VictoryArea, VictoryLabel } from 'victory-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Fonts } from '../../constants/fonts';
@@ -98,10 +99,26 @@ function WeekCompareCard({ expenses, total }: { expenses: any[]; total: number }
 export default function StatsScreen() {
   const { expenses } = useExpenses();
   const { profile } = useProfile();
+  const [showLoader, setShowLoader] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoader(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Ngày');
   const [showDayDetail, setShowDayDetail] = useState(false);
   const [showCustomDetail, setShowCustomDetail] = useState(false);
+
+  const dayDetailAnim = useRef(new Animated.Value(0)).current;
+  const customDetailAnim = useRef(new Animated.Value(0)).current;
+  const rangeModalAnim = useRef(new Animated.Value(0)).current;
+  const dayPickerAnim = useRef(new Animated.Value(0)).current;
+
+  const fadeIn = useCallback((anim: Animated.Value) => {
+    anim.setValue(0);
+    Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+  }, []);
 
   // Custom range
   const [customStart, setCustomStart] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 6); d.setHours(0,0,0,0); return d; });
@@ -111,6 +128,11 @@ export default function StatsScreen() {
   const [showRangeModal, setShowRangeModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
   const [showDayPicker, setShowDayPicker] = useState(false);
+
+  useEffect(() => { if (showDayDetail) fadeIn(dayDetailAnim); }, [showDayDetail]);
+  useEffect(() => { if (showCustomDetail) fadeIn(customDetailAnim); }, [showCustomDetail]);
+  useEffect(() => { if (showRangeModal) fadeIn(rangeModalAnim); }, [showRangeModal]);
+  useEffect(() => { if (showDayPicker) fadeIn(dayPickerAnim); }, [showDayPicker]);
 
   const [now, setNow] = useState(() => new Date());
   const todayStr = toLocalDateStr(now);
@@ -598,10 +620,10 @@ export default function StatsScreen() {
       </ScrollView>
 
       {/* ── Modal chi tiết giao dịch hôm nay ── */}
-      <Modal visible={showDayDetail} transparent animationType="slide" onRequestClose={() => setShowDayDetail(false)}>
-        <View style={styles.modalContainer}>
+      <Modal visible={showDayDetail} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowDayDetail(false)}>
+        <Animated.View style={[styles.modalContainer, { opacity: dayDetailAnim }]}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowDayDetail(false)} />
-          <View style={styles.modalSheet}>
+          <Animated.View style={[styles.modalSheet, { opacity: dayDetailAnim, transform: [{ translateY: dayDetailAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
           <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Giao dịch hôm nay</Text>
@@ -628,15 +650,15 @@ export default function StatsScreen() {
               );
             })}
           </ScrollView>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       {/* ── Modal chi tiết giao dịch tùy chỉnh ── */}
-      <Modal visible={showCustomDetail} transparent animationType="slide" onRequestClose={() => setShowCustomDetail(false)}>
-        <View style={styles.modalContainer}>
+      <Modal visible={showCustomDetail} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowCustomDetail(false)}>
+        <Animated.View style={[styles.modalContainer, { opacity: customDetailAnim }]}>
           <Pressable style={styles.modalOverlay} onPress={() => setShowCustomDetail(false)} />
-          <View style={styles.modalSheet}>
+          <Animated.View style={[styles.modalSheet, { opacity: customDetailAnim, transform: [{ translateY: customDetailAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -666,15 +688,15 @@ export default function StatsScreen() {
                 );
               })}
             </ScrollView>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       {/* ── Modal chọn khoảng thời gian (không lồng modal) ── */}
-      <Modal visible={showRangeModal} transparent animationType="slide" onRequestClose={() => { setShowRangeModal(false); setShowStartPicker(false); setShowEndPicker(false); }}>
-        <View style={styles.modalContainer}>
+      <Modal visible={showRangeModal} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => { setShowRangeModal(false); setShowStartPicker(false); setShowEndPicker(false); }}>
+        <Animated.View style={[styles.modalContainer, { opacity: rangeModalAnim }]}>
           <Pressable style={styles.modalOverlay} onPress={() => { setShowRangeModal(false); setShowStartPicker(false); setShowEndPicker(false); }} />
-          <View style={[styles.modalSheet, { maxHeight: '85%' }]}>
+          <Animated.View style={[styles.modalSheet, { maxHeight: '85%', opacity: rangeModalAnim, transform: [{ translateY: rangeModalAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
@@ -745,13 +767,14 @@ export default function StatsScreen() {
               </>
             )}
             <View style={{ height: 24 }} />
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       </Modal>
 
       {/* ── Modal chọn ngày (tab Ngày) ── */}
-      <Modal visible={showDayPicker} transparent animationType="fade" onRequestClose={() => setShowDayPicker(false)}>
-        <Pressable style={styles.dateModalOverlay} onPress={() => setShowDayPicker(false)}>
+      <Modal visible={showDayPicker} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowDayPicker(false)}>
+        <Animated.View style={{ flex: 1, opacity: dayPickerAnim }}>
+          <Pressable style={styles.dateModalOverlay} onPress={() => setShowDayPicker(false)}>
           <Pressable style={styles.dateModalSheet}>
             <Text style={styles.dateModalTitle}>Chọn ngày</Text>
             <DateTimePicker
@@ -768,7 +791,10 @@ export default function StatsScreen() {
             </TouchableOpacity>
           </Pressable>
         </Pressable>
+        </Animated.View>
       </Modal>
+
+      {showLoader && <CoinLoader />}
     </View>
   );
 }
@@ -882,7 +908,7 @@ const styles = StyleSheet.create({
 
   /* ── Modal chi tiết ── */
   modalContainer: { flex: 1, justifyContent: 'flex-end' },
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,4,30,0.6)' },
   modalSheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingTop: 12, paddingHorizontal: 20, maxHeight: '75%' },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#e4dff5', alignSelf: 'center', marginBottom: 16 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },

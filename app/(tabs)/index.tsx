@@ -1,9 +1,9 @@
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Animated
+  StyleSheet, Animated, Modal
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
@@ -11,12 +11,33 @@ import { useCategories } from '../../context/CategoriesContext';
 import { formatVND } from '../../lib/vnd';
 import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
+import { StreakCalendar } from '../../components/StreakCalendar';
+import { CoinLoader } from '../../components/CoinLoader';
 
 
 export default function DashboardScreen() {
   const { user } = useAuth();
-  const { totalThisMonth, byCategory, expenses } = useExpenses();
-  const { profile, checkAndUpdateStreak } = useProfile();
+  const { totalThisMonth, byCategory, expenses, loading: expensesLoading } = useExpenses();
+  const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading } = useProfile();
+  const [showStreakModal, setShowStreakModal] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+  const loaderTimerDone = useRef(false);
+  const dataReady = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loaderTimerDone.current = true;
+      if (dataReady.current) setShowLoader(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!profileLoading && !expensesLoading) {
+      dataReady.current = true;
+      if (loaderTimerDone.current) setShowLoader(false);
+    }
+  }, [profileLoading, expensesLoading]);
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const router = useRouter();
 
@@ -31,6 +52,7 @@ export default function DashboardScreen() {
   const dot3Anim = useRef(new Animated.Value(0.4)).current;
   const fabAnim = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const streakModalAnim = useRef(new Animated.Value(0)).current;
 
   const insightOpacity = scrollY.interpolate({ inputRange: [0, 60, 120], outputRange: [1, 0.5, 0], extrapolate: 'clamp' });
   const insightScale = scrollY.interpolate({ inputRange: [0, 120], outputRange: [1, 0.93], extrapolate: 'clamp' });
@@ -79,6 +101,14 @@ export default function DashboardScreen() {
       [orb1, orb2, orb3, streak, ...dots].forEach(a => a.stop());
     };
   }, [checkAndUpdateStreak]);
+
+  useEffect(() => {
+    if (showStreakModal) {
+      streakModalAnim.setValue(0);
+      Animated.timing(streakModalAnim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
+    }
+  }, [showStreakModal]);
+
 
   const budget = profile?.monthly_budget ?? 10_000_000;
   const streakCount = profile?.streak_count ?? 0;
@@ -212,10 +242,13 @@ export default function DashboardScreen() {
             <Text style={styles.totalAmount}>{formatVND(totalThisMonth)}</Text>
 
             {streakCount > 0 && (
-              <Animated.View style={[styles.streakBadge, { opacity: streakAnim }]}>
-                <Text style={{ fontSize: 13 }}>🔥</Text>
-                <Text style={styles.streakText}>{streakCount} ngày streak!</Text>
-              </Animated.View>
+              <TouchableOpacity onPress={() => setShowStreakModal(true)} activeOpacity={0.8}>
+                <Animated.View style={[styles.streakBadge, { opacity: streakAnim }]}>
+                  <Text style={{ fontSize: 13 }}>🔥</Text>
+                  <Text style={styles.streakText}>{streakCount} ngày streak!</Text>
+                  <Text style={styles.streakArrow}>›</Text>
+                </Animated.View>
+              </TouchableOpacity>
             )}
 
             <View style={styles.progRow}>
@@ -351,6 +384,40 @@ export default function DashboardScreen() {
           <Text style={styles.fabText}>+</Text>
         </TouchableOpacity>
       </Animated.View>
+
+      {/* COIN LOADER */}
+      {showLoader && <CoinLoader />}
+
+      {/* STREAK CALENDAR MODAL */}
+      <Modal visible={showStreakModal} animationType="none" transparent presentationStyle="overFullScreen">
+        <Animated.View style={[styles.modalOverlay, { opacity: streakModalAnim }]}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowStreakModal(false)} />
+          <Animated.View style={[styles.modalSheet, {
+            transform: [{ translateY: streakModalAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] }) }],
+          }]}>
+            {/* Handle */}
+            <View style={styles.modalHandle} />
+
+            {/* Hero banner */}
+            <View style={styles.modalBanner}>
+              <View style={styles.bannerOrb1} />
+              <View style={styles.bannerOrb2} />
+              <TouchableOpacity style={styles.bannerCloseBtn} onPress={() => setShowStreakModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={styles.bannerCloseTxt}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.bannerFire}>🔥</Text>
+              <Text style={styles.bannerCount}>{streakCount}</Text>
+              <Text style={styles.bannerLabel}>ngày liên tiếp</Text>
+              <Text style={styles.bannerHint}>Ghi lại mỗi ngày để không bỏ lỡ{'\n'}bức tranh tài chính của bạn</Text>
+            </View>
+
+            {/* Calendar */}
+            <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <StreakCalendar streakDates={streakDates} streakCount={streakCount} />
+            </ScrollView>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
     </View>
   );
 }
@@ -382,6 +449,58 @@ const styles = StyleSheet.create({
 
   streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginBottom: 18 },
   streakText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
+  streakArrow: { fontSize: 14, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold, marginLeft: 2 },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(10,4,30,0.65)',
+    justifyContent: 'flex-end',
+    flexDirection: 'column',
+  },
+  modalSheet: {
+    backgroundColor: '#f5f3ff',
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    maxHeight: '88%',
+    paddingBottom: 36,
+    overflow: 'hidden',
+  },
+  modalHandle: {
+    width: 36, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    alignSelf: 'center',
+    position: 'absolute', top: 10, zIndex: 10,
+  },
+
+  /* Banner */
+  modalBanner: {
+    backgroundColor: '#1a0a3c',
+    paddingTop: 20, paddingBottom: 16,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  bannerOrb1: {
+    position: 'absolute', top: -50, right: -50,
+    width: 150, height: 150, borderRadius: 75,
+    backgroundColor: 'rgba(107,79,168,0.45)',
+  },
+  bannerOrb2: {
+    position: 'absolute', bottom: -40, left: -40,
+    width: 110, height: 110, borderRadius: 55,
+    backgroundColor: 'rgba(59,31,110,0.5)',
+  },
+  bannerCloseBtn: {
+    position: 'absolute', top: 14, right: 16,
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  bannerCloseTxt: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontFamily: Fonts.bold },
+  bannerFire: { fontSize: 28, marginBottom: 4 },
+  bannerCount: { fontSize: 40, fontFamily: Fonts.extraBold, color: '#fff', lineHeight: 44 },
+  bannerLabel: { fontSize: 13, fontFamily: Fonts.semiBold, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
+  bannerHint: { fontSize: 12, fontFamily: Fonts.medium, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 17 },
+
+  modalBody: { padding: 20, paddingBottom: 8 },
 
 
   progRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

@@ -28,6 +28,7 @@
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "15.15.3",
+    "react-native-svg-transformer": "^1.5.3",
     "sharp-cli": "^5.2.0",
     "victory-native": "^36.9.2"
   },

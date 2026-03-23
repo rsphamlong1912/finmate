@@ -88,8 +88,14 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteExpense = async (id: string) => {
+    const backup = expenses.find(e => e.id === id);
     setExpenses(prev => prev.filter(e => e.id !== id));
-    await supabase.from('expenses').delete().eq('id', id);
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error && backup) {
+      setExpenses(prev => [backup, ...prev].sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ));
+    }
   };
 
   return (

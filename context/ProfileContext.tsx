@@ -14,6 +14,7 @@ export type Profile = {
 
 type ProfileContextType = {
   profile: Profile | null;
+  streakDates: string[];
   loading: boolean;
   updateBudget: (amount: number) => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
@@ -26,11 +27,44 @@ const ProfileContext = createContext<ProfileContextType | null>(null);
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [streakDates, setStreakDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const fetchStreakDates = useCallback(async () => {
+    if (!user?.id) return;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 90);
+    const cutoff = `${cutoffDate.getFullYear()}-${String(cutoffDate.getMonth() + 1).padStart(2, '0')}-${String(cutoffDate.getDate()).padStart(2, '0')}`;
+    const { data } = await supabase
+      .from('streaks')
+      .select('date')
+      .eq('user_id', user.id)
+      .gte('date', cutoff)
+      .order('date', { ascending: false });
+    setStreakDates(data?.map(s => s.date.slice(0, 10)) ?? []);
+  }, [user?.id]);
 
   const getLocalDateStr = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // Parse "YYYY-MM-DD" thành UTC timestamp để diff luôn chính xác, không phụ thuộc timezone
+  const parseDateUTC = (dateStr: string) => {
+    const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+
+  const calcStreak = (sortedDates: string[], today: string) => {
+    let streak = 0;
+    let current = parseDateUTC(today);
+    for (const dateStr of sortedDates) {
+      const d = parseDateUTC(dateStr);
+      const diff = Math.round((current - d) / 86400000);
+      if (diff === 0 || diff === 1) { streak++; current = d; }
+      else break;
+    }
+    return streak;
   };
 
   const fetchProfile = useCallback(async () => {
@@ -72,17 +106,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .order('date', { ascending: false })
         .limit(365);
 
-      let streak = 0;
-      if (streakDays?.length) {
-        const sorted = streakDays.map(s => s.date).sort().reverse();
-        let current = new Date(today);
-        for (const dateStr of sorted) {
-          const d = new Date(dateStr);
-          const diff = Math.round((current.getTime() - d.getTime()) / 86400000);
-          if (diff === 0 || diff === 1) { streak++; current = d; }
-          else break;
-        }
-      }
+      const streak = streakDays?.length
+        ? calcStreak(streakDays.map(s => s.date).sort().reverse(), today)
+        : 0;
 
       const streakUpdate = { streak_count: streak, last_active_date: today, updated_at: new Date().toISOString() };
       await supabase.from('profiles').update(streakUpdate).eq('id', user.id);
@@ -90,8 +116,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     setProfile(currentProfile);
+    await fetchStreakDates();
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, fetchStreakDates]);
 
   useEffect(() => {
     fetchProfile();
@@ -141,26 +168,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       .order('date', { ascending: false })
       .limit(365);
 
-    let streak = 0;
-    if (streakDays?.length) {
-      const sorted = streakDays.map(s => s.date).sort().reverse();
-      let current = new Date(today);
-      for (const dateStr of sorted) {
-        const d = new Date(dateStr);
-        const diff = Math.round((current.getTime() - d.getTime()) / 86400000);
-        if (diff === 0 || diff === 1) { streak++; current = d; }
-        else break;
-      }
-    }
+    const streak = streakDays?.length
+      ? calcStreak(streakDays.map(s => s.date).sort().reverse(), today)
+      : 0;
 
     const updated = { streak_count: streak, last_active_date: today, updated_at: new Date().toISOString() };
     setProfile(prev => prev ? { ...prev, ...updated } : prev);
     await supabase.from('profiles').update(updated).eq('id', user.id);
-  }, [user?.id, profile]);
+    await fetchStreakDates();
+  }, [user?.id, profile, fetchStreakDates]);
 
   return (
     <ProfileContext.Provider value={{
-      profile, loading,
+      profile, streakDates, loading,
       updateBudget, updateDisplayName, updateSettings, checkAndUpdateStreak,
     }}>
       {children}

@@ -4,25 +4,34 @@ import {
   StyleSheet, Alert
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
+import AppIcon from '../../assets/app-icon.svg';
 
 export default function LoginScreen() {
+  const { signup } = useLocalSearchParams<{ signup?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(signup === '1');
+  const { signIn, signUp: signUpFn } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async () => {
     if (!email || !password) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập email và mật khẩu');
       return;
     }
+    if (isSignUp && password !== confirmPassword) {
+      Alert.alert('Mật khẩu không khớp', 'Vui lòng nhập lại mật khẩu giống nhau');
+      return;
+    }
     setLoading(true);
 
     if (isSignUp) {
-      const { error } = await signUp(email, password);
+      const { error } = await signUpFn(email, password);
       setLoading(false);
       if (error) {
         Alert.alert('Lỗi', error.message);
@@ -56,7 +65,7 @@ export default function LoginScreen() {
         {/* HERO */}
         <View style={styles.hero}>
           <View style={styles.logoWrap}>
-            <Text style={styles.logoIcon}>💰</Text>
+            <AppIcon width={65} height={65} />
           </View>
           <Text style={styles.appName}>FinMate</Text>
           <Text style={styles.tagline}>
@@ -101,6 +110,35 @@ export default function LoginScreen() {
             />
           </View>
 
+          {isSignUp && (
+            <View style={styles.inputWrap}>
+              <Text style={styles.inputLabel}>Nhập lại mật khẩu</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  confirmPassword.length > 0 && confirmPassword !== password && styles.inputError,
+                ]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="••••••••"
+                placeholderTextColor="#c4b5fd"
+                secureTextEntry
+              />
+              {confirmPassword.length > 0 && confirmPassword !== password && (
+                <Text style={styles.errorText}>Mật khẩu không khớp</Text>
+              )}
+            </View>
+          )}
+
+          {!isSignUp && (
+            <TouchableOpacity
+              style={styles.forgotBtn}
+              onPress={() => router.push('/(auth)/forgot-password')}
+            >
+              <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
             onPress={handleSubmit}
@@ -115,7 +153,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.switchBtn}
-            onPress={() => setIsSignUp(v => !v)}
+            onPress={() => { setIsSignUp(v => !v); setConfirmPassword(''); }}
           >
             <Text style={styles.switchText}>
               {isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}
@@ -183,6 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.semiBold,
     borderWidth: 2, borderColor: '#e4dff5',
   },
+
+  inputError: { borderColor: '#ef4444' },
+  errorText: { fontSize: 11, color: '#ef4444', fontFamily: Fonts.medium, marginTop: 4 },
+
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: 4, marginTop: -8 },
+  forgotText: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.semiBold },
 
   submitBtn: {
     backgroundColor: '#6b4fa8', borderRadius: 16,
