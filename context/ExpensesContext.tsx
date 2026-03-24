@@ -9,7 +9,7 @@ type ExpensesContextType = {
   byCategory: Record<string, number>;
   loading: boolean;
   addExpense: (data: { amount: number; category: ExpenseCategory; note?: string }) => Promise<{ error: any }>;
-  updateExpense: (id: string, data: { amount: number; category: ExpenseCategory; note?: string }) => Promise<{ error: any }>;
+  updateExpense: (id: string, data: { amount: number; category: ExpenseCategory; note?: string; created_at?: string }) => Promise<{ error: any }>;
   deleteExpense: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
 };
@@ -70,14 +70,16 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
-  const updateExpense = async (id: string, data: { amount: number; category: ExpenseCategory; note?: string }) => {
+  const updateExpense = async (id: string, data: { amount: number; category: ExpenseCategory; note?: string; created_at?: string }) => {
     // Update local ngay
     setExpenses(prev => prev.map(e =>
-      e.id === id ? { ...e, amount: data.amount, category: data.category, note: data.note ?? '' } : e
+      e.id === id ? { ...e, amount: data.amount, category: data.category, note: data.note ?? '', ...(data.created_at ? { created_at: data.created_at } : {}) } : e
     ));
+    const updatePayload: any = { amount: data.amount, category: data.category, note: data.note ?? '', updated_at: new Date().toISOString() };
+    if (data.created_at) updatePayload.created_at = data.created_at;
     const { error } = await supabase
       .from('expenses')
-      .update({ amount: data.amount, category: data.category, note: data.note ?? '', updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', id);
     if (error) {
       // Rollback

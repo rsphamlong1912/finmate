@@ -800,8 +800,8 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3b1f6e' },
-  header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 20, paddingHorizontal: 24, overflow: 'hidden' },
+  root: { flex: 1, backgroundColor: '#eeeaf8' },
+  header: { backgroundColor: '#3b1f6e', paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24, overflow: 'hidden', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
   headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 4 },
   headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.medium, marginBottom: 16 },

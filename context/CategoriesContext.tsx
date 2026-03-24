@@ -5,6 +5,7 @@ import { Category, DEFAULT_CATEGORIES } from '../types';
 
 type CategoriesContextType = {
   categories: Category[];
+  loading: boolean;
   addCategory: (data: { name: string; emoji: string; color: string }) => Promise<{ error: any }>;
   deleteCategory: (id: string) => Promise<void>;
   getCategoryLabel: (id: string) => string;
@@ -17,9 +18,10 @@ const CategoriesContext = createContext<CategoriesContextType | null>(null);
 export function CategoriesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [customCategories, setCustomCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchCustom = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) { setLoading(false); return; }
     const { data } = await supabase
       .from('user_categories')
       .select('*')
@@ -34,6 +36,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
         is_default: false,
       })));
     }
+    setLoading(false);
   }, [user?.id]);
 
   useEffect(() => { fetchCustom(); }, [fetchCustom]);
@@ -64,7 +67,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
 
   return (
     <CategoriesContext.Provider value={{
-      categories, addCategory, deleteCategory,
+      categories, loading, addCategory, deleteCategory,
       getCategoryLabel, getCategoryEmoji, getCategoryColor,
     }}>
       {children}

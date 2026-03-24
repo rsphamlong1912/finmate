@@ -73,6 +73,7 @@ export default function TransactionsScreen() {
         amount: e.amount.toString(),
         category: e.category,
         note: e.note ?? '',
+        date: e.created_at,
       },
     });
   };

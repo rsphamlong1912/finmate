@@ -85,7 +85,7 @@ function RootNavigator() {
       if (!introDone) {
         if (!inIntro) router.replace('/intro');
       } else {
-        if (!inAuth) router.replace('/(auth)/login');
+        if (!inAuth && !inIntro) router.replace('/(auth)/login');
       }
     } else {
       if (onboardingDone === null) return;

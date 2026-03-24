@@ -132,12 +132,23 @@ export function buildFinancialContext(params: {
     .map(g => `  "${g.title}": đã tiết kiệm ${fmtAmt(g.saved)} / mục tiêu ${fmtAmt(g.target)} (${Math.round((g.saved / g.target) * 100)}%)`)
     .join('\n');
 
+  const DAY_NAMES = ['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'];
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(nowDate);
+    d.setDate(nowDate.getDate() - (6 - i));
+    const isoDay = `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+    const label = i === 6 ? 'hôm nay' : i === 5 ? 'hôm qua' : '';
+    return `  ${isoDay} — ${DAY_NAMES[d.getDay()]}${label ? ` (${label})` : ''}`;
+  }).join('\n');
+
   return `
 [NGÀY]
-Hôm nay: ${day}/${month}/${year} (${['Chủ nhật','Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7'][nowDate.getDay()]})
-Hôm qua: ${yesterday.getDate()}/${yesterday.getMonth() + 1}/${yesterday.getFullYear()}
-Ngày mai: ${tomorrow.getDate()}/${tomorrow.getMonth() + 1}/${tomorrow.getFullYear()}
+Hôm nay: ${day}/${month}/${year} (${DAY_NAMES[nowDate.getDay()]})
+Hôm qua: ${yesterday.getDate()}/${yesterday.getMonth() + 1}/${yesterday.getFullYear()} (${DAY_NAMES[yesterday.getDay()]})
+Ngày mai: ${tomorrow.getDate()}/${tomorrow.getMonth() + 1}/${tomorrow.getFullYear()} (${DAY_NAMES[tomorrow.getDay()]})
 Còn ${daysLeft} ngày trong tháng ${month}/${year}
+7 ngày gần nhất:
+${last7}
 
 [HÔM NAY — ${day}/${month}/${year}]
 Tổng chi: ${fmtAmt(todayTotal)}

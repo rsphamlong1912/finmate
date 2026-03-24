@@ -117,6 +117,7 @@ export default function ChatScreen() {
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const isSending = useRef(false);
   const [history, setHistory] = useState<Message[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const scrollRef = useRef<ScrollView>(null);
@@ -144,12 +145,18 @@ export default function ChatScreen() {
   }, [user?.id]);
 
   const send = useCallback(async (text: string) => {
-    if (!text.trim() || loading) return;
+    if (!text.trim() || isSending.current) return;
+    isSending.current = true;
     setInput('');
     const userMsg: ChatMsg = { id: Date.now().toString(), role: 'user', text, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
+
+    // Lưu user message ngay — trước khi gọi AI để timestamp tự nhiên sớm hơn AI
+    if (user?.id) {
+      await supabase.from('chat_messages').insert({ user_id: user.id, role: 'user', content: text });
+    }
 
     const updated: Message[] = [...history, { role: 'user', content: text }];
     try {
@@ -194,11 +201,9 @@ export default function ChatScreen() {
       const aiMsg: ChatMsg = { id: (Date.now() + 1).toString(), role: 'assistant', text: aiText, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
       setHistory(([...updated, { role: 'assistant' as const, content: aiText }]).slice(-4));
+      // Lưu AI message sau — timestamp tự nhiên muộn hơn user message
       if (user?.id) {
-        await supabase.from('chat_messages').insert([
-          { user_id: user.id, role: 'user', content: text },
-          { user_id: user.id, role: 'assistant', content: aiText },
-        ]);
+        await supabase.from('chat_messages').insert({ user_id: user.id, role: 'assistant', content: aiText });
       }
     } catch {
       setMessages(prev => [...prev, {
@@ -207,10 +212,11 @@ export default function ChatScreen() {
         timestamp: new Date(),
       }]);
     } finally {
+      isSending.current = false;
       setLoading(false);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
     }
-  }, [loading, history, session, user, goals, profile]);
+  }, [history, session, user, goals, profile]);
 
   const fmtTime = (d?: Date) => {
     if (!d) return '';
@@ -359,7 +365,7 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatarWrap: { position: 'relative' },
   avatarInner: {
-    width: 46, height: 46, borderRadius: 15,
+    width: 46, height: 46, borderRadius: 999,
     backgroundColor: '#6b4fa8',
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)',
@@ -386,7 +392,7 @@ const styles = StyleSheet.create({
   bubbleWrapUser: { justifyContent: 'flex-end' },
   bubbleWrapAI: { justifyContent: 'flex-start' },
   bubbleAvatar: {
-    width: 30, height: 30, borderRadius: 10,
+    width: 30, height: 30, borderRadius: 999,
     backgroundColor: '#6b4fa8', alignItems: 'center', justifyContent: 'center',
     shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2, shadowRadius: 6, elevation: 3,

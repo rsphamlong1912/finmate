@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { DatePickerModal } from '../components/DatePickerModal';
 import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
 import { useCategories } from '../context/CategoriesContext';
@@ -12,8 +13,8 @@ import { formatVND, parseVND } from '../lib/vnd';
 
 export default function EditExpenseScreen() {
   const router = useRouter();
-  const { id, amount: initAmount, category: initCategory, note: initNote } = useLocalSearchParams<{
-    id: string; amount: string; category: string; note: string;
+  const { id, amount: initAmount, category: initCategory, note: initNote, date: initDate } = useLocalSearchParams<{
+    id: string; amount: string; category: string; note: string; date: string;
   }>();
 
   const { updateExpense, deleteExpense } = useExpenses();
@@ -22,6 +23,8 @@ export default function EditExpenseScreen() {
   const [rawInput, setRawInput] = useState(initAmount ?? '');
   const [category, setCategory] = useState(initCategory ?? 'food');
   const [note, setNote] = useState(initNote ?? '');
+  const [date, setDate] = useState(initDate ? new Date(initDate) : new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const amount = parseVND(rawInput);
@@ -39,7 +42,7 @@ export default function EditExpenseScreen() {
       return;
     }
     setSaving(true);
-    const { error } = await updateExpense(id, { amount, category, note });
+    const { error } = await updateExpense(id, { amount, category, note, created_at: date.toISOString() });
     setSaving(false);
     if (error) Alert.alert('Lỗi', 'Không thể lưu. Thử lại nhé!');
     else router.back();
@@ -102,6 +105,22 @@ export default function EditExpenseScreen() {
             placeholderTextColor="#c4b5fd"
           />
 
+          <Text style={styles.sectionLabel}>Ngày</Text>
+          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
+            <Text style={styles.dateBtnIcon}>📅</Text>
+            <Text style={styles.dateBtnText}>
+              {date.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}
+            </Text>
+            <Text style={styles.dateBtnArrow}>›</Text>
+          </TouchableOpacity>
+          <DatePickerModal
+            visible={showDatePicker}
+            value={date}
+            maximumDate={new Date()}
+            onConfirm={(d) => { setDate(d); setShowDatePicker(false); }}
+            onClose={() => setShowDatePicker(false)}
+          />
+
           <Text style={styles.sectionLabel}>Danh mục</Text>
           <View style={styles.pillsWrap}>
             {categories.map(cat => (
@@ -150,6 +169,15 @@ const styles = StyleSheet.create({
   amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.medium },
 
   body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
+  dateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#fff', borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 13,
+    borderWidth: 1.5, borderColor: '#e4dff5', marginBottom: 20,
+  },
+  dateBtnIcon: { fontSize: 18 },
+  dateBtnText: { flex: 1, fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e' },
+  dateBtnArrow: { fontSize: 18, color: '#c4b5fd', fontFamily: Fonts.bold },
   sectionLabel: { fontSize: 13, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 10, marginTop: 4 },
   noteInput: {
     backgroundColor: '#fff', borderRadius: 14,

@@ -16,6 +16,8 @@ type ProfileContextType = {
   profile: Profile | null;
   streakDates: string[];
   loading: boolean;
+  newStreakDay: boolean;
+  clearNewStreakDay: () => void;
   updateBudget: (amount: number) => Promise<void>;
   updateDisplayName: (name: string) => Promise<void>;
   updateSettings: (settings: Partial<Pick<Profile, 'notif_enabled' | 'streak_enabled'>>) => Promise<void>;
@@ -29,6 +31,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [streakDates, setStreakDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newStreakDay, setNewStreakDay] = useState(false);
 
   const fetchStreakDates = useCallback(async () => {
     if (!user?.id) return;
@@ -113,6 +116,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       const streakUpdate = { streak_count: streak, last_active_date: today, updated_at: new Date().toISOString() };
       await supabase.from('profiles').update(streakUpdate).eq('id', user.id);
       currentProfile = { ...currentProfile, ...streakUpdate };
+      setNewStreakDay(true);
     }
 
     setProfile(currentProfile);
@@ -178,9 +182,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     await fetchStreakDates();
   }, [user?.id, profile, fetchStreakDates]);
 
+  const clearNewStreakDay = () => setNewStreakDay(false);
+
   return (
     <ProfileContext.Provider value={{
       profile, streakDates, loading,
+      newStreakDay, clearNewStreakDay,
       updateBudget, updateDisplayName, updateSettings, checkAndUpdateStreak,
     }}>
       {children}

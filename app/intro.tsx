@@ -59,7 +59,11 @@ export default function IntroScreen() {
   const markDoneAndGo = async (signup: boolean) => {
     await AsyncStorage.setItem(INTRO_DONE_KEY, 'true');
     markIntroDone();
-    router.replace({ pathname: '/(auth)/login', params: { signup: signup ? '1' : '0' } });
+    if (signup) {
+      router.replace('/(auth)/register');
+    } else {
+      router.replace('/(auth)/login');
+    }
   };
 
   const handleNext = () => {

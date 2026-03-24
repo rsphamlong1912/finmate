@@ -13,13 +13,18 @@ import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
 import { StreakCalendar } from '../../components/StreakCalendar';
 import { CoinLoader } from '../../components/CoinLoader';
+import { StreakCelebrationModal } from '../../components/StreakCelebrationModal';
 
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { totalThisMonth, byCategory, expenses, loading: expensesLoading } = useExpenses();
-  const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading } = useProfile();
+  const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading, newStreakDay, clearNewStreakDay } = useProfile();
+  const { getCategoryLabel, getCategoryColor, getCategoryEmoji, loading: categoriesLoading } = useCategories();
+  const router = useRouter();
+
   const [showStreakModal, setShowStreakModal] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const loaderTimerDone = useRef(false);
   const dataReady = useRef(false);
@@ -33,13 +38,18 @@ export default function DashboardScreen() {
   }, []);
 
   useEffect(() => {
-    if (!profileLoading && !expensesLoading) {
+    if (!profileLoading && !expensesLoading && !categoriesLoading) {
       dataReady.current = true;
       if (loaderTimerDone.current) setShowLoader(false);
     }
-  }, [profileLoading, expensesLoading]);
-  const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
-  const router = useRouter();
+  }, [profileLoading, expensesLoading, categoriesLoading]);
+
+  useEffect(() => {
+    if (!showLoader && newStreakDay) {
+      const t = setTimeout(() => setShowCelebration(true), 500);
+      return () => clearTimeout(t);
+    }
+  }, [showLoader, newStreakDay]);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -113,6 +123,15 @@ export default function DashboardScreen() {
   const budget = profile?.monthly_budget ?? 10_000_000;
   const streakCount = profile?.streak_count ?? 0;
   const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'bạn';
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h >= 5  && h < 11) return `Chào buổi sáng, ${displayName} ☀️`;
+    if (h >= 11 && h < 13) return `Trưa rồi, ${displayName} ăn chưa? 🍜`;
+    if (h >= 13 && h < 18) return `Buổi chiều vui vẻ, ${displayName} 🌤️`;
+    if (h >= 18 && h < 22) return `Buổi tối bình yên, ${displayName} 🌙`;
+    return `Thức khuya vậy, ${displayName}? 🦉`;
+  })();
 
   const recentExpenses = expenses.slice(0, 12);
   const pct = Math.min((totalThisMonth / budget) * 100, 100);
@@ -225,7 +244,7 @@ export default function DashboardScreen() {
           <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
             <View style={styles.topRow}>
               <View>
-                <Text style={styles.greeting}>Xin chào, {displayName} 👋</Text>
+                <Text style={styles.greeting}>{greeting}</Text>
                 <Text style={styles.period}>{monthName}</Text>
               </View>
               <TouchableOpacity
@@ -346,7 +365,7 @@ export default function DashboardScreen() {
                             key={e.id}
                             style={[styles.txRow, i < items.length - 1 && styles.txBorder]}
                             activeOpacity={0.7}
-                            onPress={() => router.push({ pathname: '/edit-expense', params: { id: e.id, amount: String(e.amount), category: e.category, note: e.note ?? '' } })}
+                            onPress={() => router.push({ pathname: '/edit-expense', params: { id: e.id, amount: String(e.amount), category: e.category, note: e.note ?? '', date: e.created_at } })}
                           >
                             <View style={[styles.txIconWrap, { backgroundColor: color + '1a' }]}>
                               <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
@@ -387,6 +406,13 @@ export default function DashboardScreen() {
 
       {/* COIN LOADER */}
       {showLoader && <CoinLoader />}
+
+      {/* STREAK CELEBRATION */}
+      <StreakCelebrationModal
+        visible={showCelebration}
+        streak={profile?.streak_count ?? 0}
+        onClose={() => { setShowCelebration(false); clearNewStreakDay(); }}
+      />
 
       {/* STREAK CALENDAR MODAL */}
       <Modal visible={showStreakModal} animationType="none" transparent presentationStyle="overFullScreen">

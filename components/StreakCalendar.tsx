@@ -130,6 +130,7 @@ export function StreakCalendar({ streakDates, streakCount }: Props) {
                     ]}>
                       {cell.day}
                     </Text>
+                    {isActive && <Text style={styles.cellCoin}>🔥</Text>}
                   </View>
                 )}
               </View>
@@ -155,7 +156,7 @@ export function StreakCalendar({ streakDates, streakCount }: Props) {
   );
 }
 
-const CELL_SIZE = 38;
+const CELL_SIZE = 36;
 
 const styles = StyleSheet.create({
   container: {
@@ -194,14 +195,17 @@ const styles = StyleSheet.create({
     width: CELL_SIZE, height: CELL_SIZE,
     borderRadius: 10,
     alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'column',
+    gap: 1,
   },
-  cellActive: { backgroundColor: '#6b4fa8' },
+  cellActive: { backgroundColor: '#ff6b35' },
   cellToday: { borderWidth: 2, borderColor: '#6b4fa8', borderRadius: 10 },
-  cellTodayActive: { backgroundColor: '#3b1f6e', borderRadius: 10 },
+  cellTodayActive: { backgroundColor: '#e8521a', borderRadius: 10 },
 
-  cellText: { fontSize: 13, fontFamily: Fonts.medium, color: '#3b1f6e' },
+  cellText: { fontSize: 12, fontFamily: Fonts.medium, color: '#3b1f6e' },
   cellTextActive: { color: '#fff', fontFamily: Fonts.extraBold },
   cellTextToday: { color: '#6b4fa8', fontFamily: Fonts.extraBold },
+  cellCoin: { fontSize: 8, lineHeight: 10 },
 
   statsRow: {
     flexDirection: 'row',
