@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal
@@ -9,6 +9,9 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useGoals } from '../../context/GoalsContext';
 import { formatVND, parseVND } from '../../lib/vnd';
 import { DatePickerModal } from '../../components/DatePickerModal';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
+import { CoinLoader } from '../../components/CoinLoader';
 
 // ── Progress Ring ─────────────────────────────────────────────────────────────
 const RING_SIZE = 72;
@@ -18,12 +21,12 @@ const CIRC = 2 * Math.PI * RING_R;
 
 function ProgressRing({ pct, done }: { pct: number; done: boolean }) {
   const offset = CIRC * (1 - Math.min(pct, 100) / 100);
-  const color = done ? '#4ade80' : '#6b4fa8';
+  const color = done ? '#34d399' : '#818cf8';
   return (
     <View style={{ width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute' }}>
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
-          stroke={done ? '#dcfce7' : '#ede9f8'} strokeWidth={RING_STROKE} fill="none" />
+          stroke={done ? 'rgba(52,211,153,0.18)' : 'rgba(129,140,248,0.15)'} strokeWidth={RING_STROKE} fill="none" />
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
           stroke={color} strokeWidth={RING_STROKE} fill="none"
           strokeDasharray={CIRC} strokeDashoffset={offset}
@@ -49,7 +52,19 @@ const SUGGESTIONS = ['✈️ Du lịch', '📱 Mua điện thoại', '🚗 Mua x
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function GoalsScreen() {
-  const { goals, addGoal, updateGoal, addSavings, deleteGoal } = useGoals();
+  const { colors } = useTheme();
+  const { loading: authLoading } = useAuth();
+  const { goals, addGoal, updateGoal, addSavings, deleteGoal, loading: goalsLoading } = useGoals();
+
+  const [showLoader, setShowLoader] = useState(true);
+  const [timerDone, setTimerDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimerDone(true), 1000);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (timerDone && !authLoading && !goalsLoading) setShowLoader(false);
+  }, [timerDone, authLoading, goalsLoading]);
 
   const [activeTab, setActiveTab]     = useState<'active' | 'done'>('active');
   const [showAdd, setShowAdd]         = useState(false);
@@ -66,6 +81,7 @@ export default function GoalsScreen() {
   const [editingId, setEditingId]       = useState<string | null>(null);
   const [editTitle, setEditTitle]       = useState('');
   const [editTarget, setEditTarget]     = useState('');
+  const [editSaved, setEditSaved]       = useState('');
   const [editDeadline, setEditDeadline] = useState<Date | null>(null);
   const [showEditDate, setShowEditDate] = useState(false);
 
@@ -74,6 +90,11 @@ export default function GoalsScreen() {
   const [depositInput, setDepositInput]   = useState('');
 
   const [saving, setSaving] = useState(false);
+  const [depositing, setDepositing] = useState(false);
+
+  // Bug #3 fix: dùng local date để tránh lệch timezone (toISOString() dùng UTC)
+  const toLocalISODate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   const activeGoals  = goals.filter(g => g.saved_amount < g.target_amount);
   const doneGoals    = goals.filter(g => g.saved_amount >= g.target_amount);
@@ -96,7 +117,7 @@ export default function GoalsScreen() {
     const { error } = await addGoal({
       title: title.trim(),
       target_amount: amt,
-      deadline: deadline ? deadline.toISOString().split('T')[0] : undefined,
+      deadline: deadline ? toLocalISODate(deadline) : undefined,
     });
     setSaving(false);
     if (!error) { setTitle(''); setTargetInput(''); setDeadline(null); setShowAdd(false); }
@@ -105,22 +126,32 @@ export default function GoalsScreen() {
   const handleOpenEdit = (goal: any) => {
     setEditingId(goal.id);
     setEditTitle(goal.title);
-    setEditTarget(goal.target_amount.toString());
-    setEditDeadline(goal.deadline ? new Date(goal.deadline) : null);
+    // Bug #4 fix: hiển thị số có dấu chấm (vd: "5.000.000") thay vì raw "5000000"
+    setEditTarget(goal.target_amount.toLocaleString('vi-VN'));
+    setEditSaved(goal.saved_amount.toLocaleString('vi-VN'));
+    setEditDeadline(goal.deadline ? new Date(goal.deadline + 'T00:00:00') : null);
     setShowEdit(true);
   };
 
   const handleSaveEdit = async () => {
     const amt = parseVND(editTarget);
+    const savedAmt = parseVND(editSaved);
     if (!editTitle.trim() || !amt) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập tên và số tiền mục tiêu');
       return;
     }
+    if (savedAmt < 0) {
+      Alert.alert('Không hợp lệ', 'Số tiền đã tiết kiệm không được âm');
+      return;
+    }
     setSaving(true);
+    const currentGoal = goals.find(g => g.id === editingId);
     await updateGoal(editingId!, {
       title: editTitle.trim(),
       target_amount: amt,
-      deadline: editDeadline ? editDeadline.toISOString().split('T')[0] : undefined,
+      deadline: editDeadline ? toLocalISODate(editDeadline) : undefined,
+      // Bug #5 fix: chỉ cập nhật saved_amount nếu user thay đổi
+      ...(currentGoal && savedAmt !== currentGoal.saved_amount ? { saved_amount: savedAmt } : {}),
     });
     setSaving(false);
     setShowEdit(false);
@@ -129,7 +160,10 @@ export default function GoalsScreen() {
   const handleDeposit = async () => {
     const amt = parseVND(depositInput);
     if (!amt || !depositGoalId) return;
+    // Bug #2 fix: disable button trong khi đang xử lý
+    setDepositing(true);
     await addSavings(depositGoalId, amt);
+    setDepositing(false);
     const g = depositGoal;
     setDepositInput(''); setShowDeposit(false); setDepositGoalId(null);
     if (g && g.saved_amount + amt >= g.target_amount) {
@@ -143,6 +177,146 @@ export default function GoalsScreen() {
       { text: 'Xóa', style: 'destructive', onPress: () => deleteGoal(id) },
     ]);
 
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+
+    // Header
+    header: {
+      backgroundColor: colors.surface,
+      paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24,
+      borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
+      overflow: 'hidden',
+    },
+    headerBubble: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.accentBg },
+    headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 4 },
+    headerSub: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.medium, marginBottom: 16 },
+
+    summaryStrip: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: colors.card, borderRadius: 18,
+      paddingVertical: 14, paddingHorizontal: 8,
+      borderWidth: 1, borderColor: colors.cardBorder,
+    },
+    summaryItem: { flex: 1, alignItems: 'center' },
+    summaryVal: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 2 },
+    summaryLbl: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.semiBold },
+    summaryDivider: { width: 1, height: 32, backgroundColor: colors.divider },
+
+    // Tabs
+    tabBar: {
+      flexDirection: 'row', gap: 8,
+      paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0,
+    },
+    tabPill: {
+      flex: 1, paddingVertical: 9, borderRadius: 12,
+      alignItems: 'center', backgroundColor: colors.card,
+      borderWidth: 1, borderColor: colors.cardBorder,
+    },
+    tabPillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    tabPillText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
+    tabPillTextActive: { color: colors.textPrimary },
+
+    // List
+    scroll: { flex: 1 },
+    scrollContent: { padding: 20, paddingTop: 14 },
+
+    // Goal card
+    card: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: colors.card, borderRadius: 22, padding: 16, marginBottom: 12,
+      borderWidth: 1, borderColor: colors.cardBorder,
+      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: colors.shadowOpacity, shadowRadius: 14, elevation: 3,
+    },
+    cardBody: { flex: 1, gap: 4 },
+    cardTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+    bar: { height: 5, backgroundColor: colors.inputBg, borderRadius: 99, overflow: 'hidden', marginVertical: 4 },
+    barFill: { height: 5, backgroundColor: colors.accent, borderRadius: 99 },
+    barFillDone: { backgroundColor: colors.success },
+    cardAmounts: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+    cardSaved: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+    cardTarget: { fontSize: 12, fontFamily: Fonts.semiBold, color: colors.textMuted },
+    cardDeadline: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.semiBold },
+    cardRemaining: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.semiBold },
+    cardDoneLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.success },
+
+    depositBtn: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+    },
+    depositBtnText: { color: colors.textPrimary, fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
+
+    // FAB
+    fab: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      paddingHorizontal: 20, paddingBottom: 18, paddingTop: 10,
+      backgroundColor: colors.bg,
+    },
+    fabBtn: {
+      backgroundColor: colors.accent, borderRadius: 18,
+      paddingVertical: 16, alignItems: 'center',
+      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.28, shadowRadius: 14, elevation: 8,
+    },
+    fabText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+
+    // Empty
+    emptyBox: { alignItems: 'center', paddingVertical: 64 },
+    emptyIcon: { fontSize: 60, marginBottom: 16 },
+    emptyTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
+    emptySub: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 28 },
+    emptyBtn: { backgroundColor: colors.accent, borderRadius: 16, paddingHorizontal: 32, paddingVertical: 14 },
+    emptyBtnText: { color: colors.textPrimary, fontSize: 15, fontFamily: Fonts.extraBold },
+
+    // Sheet (modal)
+    sheet: { flex: 1, backgroundColor: colors.bg },
+    sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder, alignSelf: 'center', marginTop: 12 },
+    sheetHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 20, paddingVertical: 16,
+      backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.cardBorder,
+    },
+    sheetTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+    sheetCancel: { fontSize: 15, color: colors.textMuted, fontFamily: Fonts.semiBold },
+    sheetSave: { fontSize: 15, color: colors.accent, fontFamily: Fonts.extraBold },
+    sheetBody: { padding: 20, paddingTop: 8 },
+
+    // Fields
+    fieldLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent, marginTop: 18, marginBottom: 8 },
+    fieldInput: {
+      backgroundColor: colors.inputBg, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
+      fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.semiBold,
+      borderWidth: 1, borderColor: colors.inputBorder,
+      justifyContent: 'center',
+    },
+    fieldPreview: { fontSize: 12, color: colors.accent, fontFamily: Fonts.bold, marginTop: 6 },
+    clearDate: { fontSize: 12, color: colors.danger, fontFamily: Fonts.semiBold, marginTop: 8 },
+
+    // Suggestions
+    suggestionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, marginBottom: 4 },
+    suggestionChip: {
+      backgroundColor: colors.card, borderRadius: 99,
+      paddingHorizontal: 12, paddingVertical: 7,
+      borderWidth: 1, borderColor: colors.inputBorder,
+    },
+    suggestionChipText: { fontSize: 13, color: colors.accent, fontFamily: Fonts.bold },
+
+    // Deposit
+    depositPreview: { backgroundColor: colors.card, borderRadius: 18, padding: 16, marginBottom: 4, borderWidth: 1, borderColor: colors.inputBorder },
+    depositPreviewTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 8 },
+    depositPreviewSub: { fontSize: 12, color: colors.textMuted, fontFamily: Fonts.semiBold, marginTop: 6 },
+    depositAmtInput: { fontSize: 28, fontFamily: Fonts.extraBold, textAlign: 'center', paddingVertical: 20 },
+    quickRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    quickChip: { flex: 1, backgroundColor: colors.card, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.inputBorder },
+    quickChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    quickChipText: { fontSize: 15, color: colors.accent, fontFamily: Fonts.extraBold },
+    quickChipTextActive: { color: colors.textPrimary },
+
+    // Delete
+    deleteGoalBtn: { marginTop: 32, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+    deleteGoalText: { fontSize: 14, color: colors.danger, fontFamily: Fonts.extraBold },
+  });
+
   // ── render ───────────────────────────────────────────────────────────────────
   return (
     <View style={s.root}>
@@ -151,8 +325,9 @@ export default function GoalsScreen() {
       <View style={s.header}>
         <View style={s.headerBubble} />
         <Text style={s.headerTitle}>Mục tiêu</Text>
+        <Text style={s.headerSub}>Đặt mục tiêu và theo dõi tiết kiệm</Text>
 
-        {goals.length > 0 ? (
+        {goals.length > 0 && (
           <View style={s.summaryStrip}>
             <View style={s.summaryItem}>
               <Text style={s.summaryVal}>{formatVND(totalSaved)}</Text>
@@ -169,8 +344,6 @@ export default function GoalsScreen() {
               <Text style={s.summaryLbl}>mục tiêu</Text>
             </View>
           </View>
-        ) : (
-          <Text style={s.headerSub}>Đặt mục tiêu và theo dõi tiết kiệm</Text>
         )}
       </View>
 
@@ -311,7 +484,7 @@ export default function GoalsScreen() {
               value={title}
               onChangeText={setTitle}
               placeholder="VD: Du lịch Nhật, Mua iPhone..."
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
 
@@ -329,7 +502,7 @@ export default function GoalsScreen() {
               value={targetInput}
               onChangeText={setTargetInput}
               placeholder="VD: 5tr, 10tr, 500k"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
             />
             {parseVND(targetInput) > 0 && (
@@ -338,7 +511,7 @@ export default function GoalsScreen() {
 
             <Text style={s.fieldLabel}>Hạn chót (tùy chọn)</Text>
             <TouchableOpacity style={s.fieldInput} onPress={() => setShowAddDate(true)}>
-              <Text style={{ fontFamily: Fonts.semiBold, fontSize: 15, color: deadline ? '#3b1f6e' : '#c4b5fd' }}>
+              <Text style={{ fontFamily: Fonts.semiBold, fontSize: 15, color: deadline ? colors.textPrimary : colors.textMuted }}>
                 {deadline
                   ? deadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
                   : 'Chọn ngày...'}
@@ -389,7 +562,7 @@ export default function GoalsScreen() {
               value={editTitle}
               onChangeText={setEditTitle}
               placeholder="VD: Du lịch Nhật, Mua iPhone..."
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
 
@@ -399,16 +572,30 @@ export default function GoalsScreen() {
               value={editTarget}
               onChangeText={setEditTarget}
               placeholder="VD: 5tr, 10tr, 500k"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
             />
             {parseVND(editTarget) > 0 && (
               <Text style={s.fieldPreview}>{formatVND(parseVND(editTarget))}</Text>
             )}
 
+            {/* Bug #5 fix: cho phép sửa số tiền đã tiết kiệm */}
+            <Text style={s.fieldLabel}>Số tiền đã tiết kiệm</Text>
+            <TextInput
+              style={s.fieldInput}
+              value={editSaved}
+              onChangeText={setEditSaved}
+              placeholder="VD: 500k, 1tr"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+            />
+            {parseVND(editSaved) > 0 && (
+              <Text style={s.fieldPreview}>{formatVND(parseVND(editSaved))}</Text>
+            )}
+
             <Text style={s.fieldLabel}>Hạn chót (tùy chọn)</Text>
             <TouchableOpacity style={s.fieldInput} onPress={() => setShowEditDate(true)}>
-              <Text style={{ fontFamily: Fonts.semiBold, fontSize: 15, color: editDeadline ? '#3b1f6e' : '#c4b5fd' }}>
+              <Text style={{ fontFamily: Fonts.semiBold, fontSize: 15, color: editDeadline ? colors.textPrimary : colors.textMuted }}>
                 {editDeadline
                   ? editDeadline.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
                   : 'Chọn ngày...'}
@@ -447,8 +634,10 @@ export default function GoalsScreen() {
               <Text style={s.sheetCancel}>Hủy</Text>
             </TouchableOpacity>
             <Text style={s.sheetTitle}>Thêm tiết kiệm</Text>
-            <TouchableOpacity onPress={handleDeposit}>
-              <Text style={s.sheetSave}>Lưu</Text>
+            <TouchableOpacity onPress={handleDeposit} disabled={depositing}>
+              <Text style={[s.sheetSave, depositing && { opacity: 0.45 }]}>
+                {depositing ? 'Đang lưu...' : 'Lưu'}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -478,7 +667,7 @@ export default function GoalsScreen() {
               value={depositInput}
               onChangeText={setDepositInput}
               placeholder="VD: 500k, 1tr"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               autoFocus
             />
@@ -502,145 +691,9 @@ export default function GoalsScreen() {
           </KeyboardAwareScrollView>
         </View>
       </Modal>
+
+      {showLoader && <CoinLoader />}
     </View>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#eeeaf8' },
-
-  // Header
-  header: {
-    backgroundColor: '#3b1f6e',
-    paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24,
-    borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
-    overflow: 'hidden',
-  },
-  headerBubble: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.07)' },
-  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 14 },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.55)', fontFamily: Fonts.medium },
-
-  summaryStrip: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 18,
-    paddingVertical: 14, paddingHorizontal: 8,
-  },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryVal: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 2 },
-  summaryLbl: { fontSize: 10, color: 'rgba(255,255,255,0.55)', fontFamily: Fonts.semiBold },
-  summaryDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.18)' },
-
-  // Tabs
-  tabBar: {
-    flexDirection: 'row', gap: 8,
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 0,
-  },
-  tabPill: {
-    flex: 1, paddingVertical: 9, borderRadius: 12,
-    alignItems: 'center', backgroundColor: '#fff',
-    borderWidth: 1.5, borderColor: '#e4dff5',
-  },
-  tabPillActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  tabPillText: { fontSize: 13, fontFamily: Fonts.bold, color: '#9b8cc4' },
-  tabPillTextActive: { color: '#fff' },
-
-  // List
-  scroll: { flex: 1 },
-  scrollContent: { padding: 20, paddingTop: 14 },
-
-  // Goal card
-  card: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#fff', borderRadius: 22, padding: 16, marginBottom: 12,
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07, shadowRadius: 14, elevation: 3,
-  },
-  cardBody: { flex: 1, gap: 4 },
-  cardTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  bar: { height: 5, backgroundColor: '#ede9f8', borderRadius: 99, overflow: 'hidden', marginVertical: 4 },
-  barFill: { height: 5, backgroundColor: '#6b4fa8', borderRadius: 99 },
-  barFillDone: { backgroundColor: '#4ade80' },
-  cardAmounts: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  cardSaved: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  cardTarget: { fontSize: 12, fontFamily: Fonts.semiBold, color: '#c4b5fd' },
-  cardDeadline: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
-  cardRemaining: { fontSize: 11, color: '#9b8cc4', fontFamily: Fonts.semiBold },
-  cardDoneLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#4ade80' },
-
-  depositBtn: {
-    width: 36, height: 36, borderRadius: 12,
-    backgroundColor: '#6b4fa8', alignItems: 'center', justifyContent: 'center',
-  },
-  depositBtnText: { color: '#fff', fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
-
-  // FAB
-  fab: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 20, paddingBottom: 18, paddingTop: 10,
-    backgroundColor: '#eeeaf8',
-  },
-  fabBtn: {
-    backgroundColor: '#6b4fa8', borderRadius: 18,
-    paddingVertical: 16, alignItems: 'center',
-    shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28, shadowRadius: 14, elevation: 8,
-  },
-  fabText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
-
-  // Empty
-  emptyBox: { alignItems: 'center', paddingVertical: 64 },
-  emptyIcon: { fontSize: 60, marginBottom: 16 },
-  emptyTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8, textAlign: 'center' },
-  emptySub: { fontSize: 13, color: '#9b8cc4', fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 28 },
-  emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 16, paddingHorizontal: 32, paddingVertical: 14 },
-  emptyBtnText: { color: '#fff', fontSize: 15, fontFamily: Fonts.extraBold },
-
-  // Sheet (modal)
-  sheet: { flex: 1, backgroundColor: '#eeeaf8' },
-  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#e4dff5', alignSelf: 'center', marginTop: 12 },
-  sheetHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 16,
-    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0edfb',
-  },
-  sheetTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
-  sheetCancel: { fontSize: 15, color: '#c4b5fd', fontFamily: Fonts.semiBold },
-  sheetSave: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
-  sheetBody: { padding: 20, paddingTop: 8 },
-
-  // Fields
-  fieldLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginTop: 18, marginBottom: 8 },
-  fieldInput: {
-    backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.semiBold,
-    borderWidth: 1.5, borderColor: '#e4dff5',
-    justifyContent: 'center',
-  },
-  fieldPreview: { fontSize: 12, color: '#6b4fa8', fontFamily: Fonts.bold, marginTop: 6 },
-  clearDate: { fontSize: 12, color: '#ef4444', fontFamily: Fonts.semiBold, marginTop: 8 },
-
-  // Suggestions
-  suggestionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, marginBottom: 4 },
-  suggestionChip: {
-    backgroundColor: '#fff', borderRadius: 99,
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderWidth: 1.5, borderColor: '#e4dff5',
-  },
-  suggestionChipText: { fontSize: 13, color: '#6b4fa8', fontFamily: Fonts.bold },
-
-  // Deposit
-  depositPreview: { backgroundColor: '#fff', borderRadius: 18, padding: 16, marginBottom: 4, borderWidth: 1.5, borderColor: '#e4dff5' },
-  depositPreviewTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 8 },
-  depositPreviewSub: { fontSize: 12, color: '#9b8cc4', fontFamily: Fonts.semiBold, marginTop: 6 },
-  depositAmtInput: { fontSize: 28, fontFamily: Fonts.extraBold, textAlign: 'center', paddingVertical: 20 },
-  quickRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  quickChip: { flex: 1, backgroundColor: '#fff', borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1.5, borderColor: '#e4dff5' },
-  quickChipActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  quickChipText: { fontSize: 15, color: '#6b4fa8', fontFamily: Fonts.extraBold },
-  quickChipTextActive: { color: '#fff' },
-
-  // Delete
-  deleteGoalBtn: { marginTop: 32, borderWidth: 1.5, borderColor: '#fca5a5', borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
-  deleteGoalText: { fontSize: 14, color: '#ef4444', fontFamily: Fonts.extraBold },
-});

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { markIntroDone } from './_layout';
 import { Fonts } from '../constants/fonts';
 import Slide1 from '../assets/intro/slide1.svg';
+import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,7 +18,7 @@ const SLIDES = [
     emoji: null,
     title: 'Chào mừng đến\nvới FinMate',
     sub: 'Trợ lý tài chính cá nhân thông minh giúp bạn kiểm soát tiền bạc dễ dàng hơn bao giờ hết.',
-    accent: '#6b4fa8',
+    accent: '#818cf8',
   },
   {
     id: '2',
@@ -38,7 +39,7 @@ const SLIDES = [
     emoji: '🎯',
     title: 'Mục tiêu\ntiết kiệm',
     sub: 'Đặt mục tiêu và theo dõi tiến trình từng ngày. Từ du lịch, mua xe đến mua nhà.',
-    accent: '#3b1f6e',
+    accent: '#818cf8',
   },
   {
     id: '5',
@@ -52,6 +53,7 @@ const SLIDES = [
 export const INTRO_DONE_KEY = 'intro_done';
 
 export default function IntroScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const listRef = useRef<FlatList>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -72,11 +74,13 @@ export default function IntroScreen() {
     }
   };
 
+  const styles = makeStyles(colors);
+
   const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
     <View style={[styles.slide, { width }]}>
       {/* Decorative orbs */}
-      <View style={[styles.orb1, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
-      <View style={[styles.orb2, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
+      <View style={[styles.orb1, { backgroundColor: colors.orb1 }]} />
+      <View style={[styles.orb2, { backgroundColor: colors.orb2 }]} />
 
       {/* Content */}
       <View style={styles.slideContent}>
@@ -150,13 +154,13 @@ export default function IntroScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3b1f6e' },
+const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   list: { flex: 1 },
 
   slide: {
     height: height,
-    backgroundColor: '#3b1f6e',
+    backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -175,21 +179,21 @@ const styles = StyleSheet.create({
   slideContent: { alignItems: 'center' },
   emojiWrap: {
     width: 110, height: 110, borderRadius: 34,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.accentBg,
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 32,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: colors.inputBorder,
   },
   emoji: { fontSize: 52 },
   slideTitle: {
     fontSize: 34, fontFamily: Fonts.extraBold,
-    color: '#fff', textAlign: 'center',
+    color: colors.textPrimary, textAlign: 'center',
     lineHeight: 42, letterSpacing: -1, marginBottom: 16,
   },
   slideSub: {
     fontSize: 16, fontFamily: Fonts.medium,
-    color: 'rgba(255,255,255,0.65)',
+    color: colors.textSecondary,
     textAlign: 'center', lineHeight: 24,
   },
 
@@ -203,11 +207,11 @@ const styles = StyleSheet.create({
   },
   dot: {
     width: 7, height: 7, borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: colors.divider,
   },
   dotActive: {
     width: 22,
-    backgroundColor: '#fff',
+    backgroundColor: colors.accent,
   },
 
   bottom: {
@@ -220,31 +224,32 @@ const styles = StyleSheet.create({
   },
 
   nextBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.accent,
     borderRadius: 18, paddingVertical: 17,
     alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 10, elevation: 6,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
-  nextText: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  nextText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary },
 
   skipBtn: { alignItems: 'center', paddingVertical: 8 },
-  skipText: { fontSize: 14, fontFamily: Fonts.semiBold, color: 'rgba(255,255,255,0.45)' },
+  skipText: { fontSize: 14, fontFamily: Fonts.semiBold, color: colors.textMuted },
 
   registerBtn: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.accent,
     borderRadius: 18, paddingVertical: 17,
     alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 10, elevation: 6,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
-  registerText: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  registerText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary },
 
   loginBtn: {
     borderRadius: 18, paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1,
+    borderColor: colors.accentBorder,
+    backgroundColor: colors.accentBg,
   },
-  loginText: { fontSize: 15, fontFamily: Fonts.semiBold, color: 'rgba(255,255,255,0.85)' },
+  loginText: { fontSize: 15, fontFamily: Fonts.semiBold, color: colors.accent },
 });

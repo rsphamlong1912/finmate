@@ -10,8 +10,10 @@ import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
 import { useCategories } from '../context/CategoriesContext';
 import { formatVND, parseVND } from '../lib/vnd';
+import { useTheme } from '../context/ThemeContext';
 
 export default function EditExpenseScreen() {
+  const { colors } = useTheme();
   const router = useRouter();
   const { id, amount: initAmount, category: initCategory, note: initNote, date: initDate } = useLocalSearchParams<{
     id: string; amount: string; category: string; note: string; date: string;
@@ -48,6 +50,7 @@ export default function EditExpenseScreen() {
     else router.back();
   };
 
+  const styles = makeStyles(colors);
 
   return (
     <KeyboardAvoidingView
@@ -83,7 +86,7 @@ export default function EditExpenseScreen() {
               onChangeText={setRawInput}
               keyboardType="numeric"
               placeholder="0"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
             <Text style={styles.currency}>₫</Text>
@@ -102,7 +105,7 @@ export default function EditExpenseScreen() {
             value={note}
             onChangeText={setNote}
             placeholder="Ví dụ: Cà phê Highland, Grab về nhà..."
-            placeholderTextColor="#c4b5fd"
+            placeholderTextColor={colors.textMuted}
           />
 
           <Text style={styles.sectionLabel}>Ngày</Text>
@@ -147,60 +150,60 @@ export default function EditExpenseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3b1f6e' },
+const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   header: {
-    backgroundColor: '#3b1f6e',
+    backgroundColor: colors.surface,
     paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
     borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
-  headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' },
+  headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(129,140,248,0.08)' },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   backBtn: {},
-  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
-  deleteBtn: { backgroundColor: '#ef4444', borderRadius: 99, paddingVertical: 14, alignItems: 'center', marginTop: 12, marginBottom: 40 },
-  deleteText: { fontSize: 15, color: '#fff', fontFamily: Fonts.extraBold },
-  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
+  backText: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.bold },
+  deleteBtn: { backgroundColor: colors.dangerBg, borderRadius: 99, paddingVertical: 14, alignItems: 'center', marginTop: 12, marginBottom: 40, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  deleteText: { fontSize: 15, color: colors.danger, fontFamily: Fonts.extraBold },
+  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 20 },
   amountRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  amountInput: { fontSize: 44, fontFamily: Fonts.extraBold, color: '#fff', flex: 1, letterSpacing: -1, padding: 0 },
-  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
-  amountPreview: { fontSize: 14, color: '#c4b5fd', fontFamily: Fonts.bold, marginBottom: 4 },
-  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.medium },
+  amountInput: { fontSize: 44, fontFamily: Fonts.extraBold, color: colors.textPrimary, flex: 1, letterSpacing: -1, padding: 0 },
+  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textMuted, marginLeft: 6 },
+  amountPreview: { fontSize: 14, color: colors.accent, fontFamily: Fonts.bold, marginBottom: 4 },
+  amountHint: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.medium },
 
-  body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
+  body: { flex: 1, backgroundColor: colors.bg, padding: 20 },
   dateBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 14,
+    backgroundColor: colors.inputBg, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 13,
-    borderWidth: 1.5, borderColor: '#e4dff5', marginBottom: 20,
+    borderWidth: 1, borderColor: colors.inputBorder, marginBottom: 20,
   },
   dateBtnIcon: { fontSize: 18 },
-  dateBtnText: { flex: 1, fontSize: 14, fontFamily: Fonts.semiBold, color: '#3b1f6e' },
-  dateBtnArrow: { fontSize: 18, color: '#c4b5fd', fontFamily: Fonts.bold },
-  sectionLabel: { fontSize: 13, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 10, marginTop: 4 },
+  dateBtnText: { flex: 1, fontSize: 14, fontFamily: Fonts.semiBold, color: colors.textPrimary },
+  dateBtnArrow: { fontSize: 18, color: colors.textMuted, fontFamily: Fonts.bold },
+  sectionLabel: { fontSize: 13, fontFamily: Fonts.extraBold, color: colors.textMuted, marginBottom: 10, marginTop: 4 },
   noteInput: {
-    backgroundColor: '#fff', borderRadius: 14,
+    backgroundColor: colors.inputBg, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 13,
-    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.medium,
-    borderWidth: 1.5, borderColor: '#e4dff5', marginBottom: 20,
+    fontSize: 14, color: colors.textPrimary, fontFamily: Fonts.medium,
+    borderWidth: 1, borderColor: colors.inputBorder, marginBottom: 20,
   },
   pillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#fff', borderRadius: 99,
+    backgroundColor: colors.card, borderRadius: 99,
     paddingVertical: 8, paddingHorizontal: 14,
-    borderWidth: 1.5, borderColor: '#e4dff5',
+    borderWidth: 1, borderColor: colors.cardBorder,
   },
-  pillActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
+  pillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   pillIcon: { fontSize: 16 },
-  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
-  pillLabelActive: { color: '#fff' },
+  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
+  pillLabelActive: { color: colors.textPrimary },
   saveBtn: {
-    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 99,
+    backgroundColor: colors.accentBg, borderRadius: 99,
     paddingHorizontal: 16, paddingVertical: 7,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 1, borderColor: colors.accentBorder,
   },
   saveBtnDisabled: { opacity: 0.4 },
-  saveBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
+  saveBtnText: { color: colors.textPrimary, fontSize: 13, fontFamily: Fonts.extraBold },
 });

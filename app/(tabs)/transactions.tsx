@@ -6,10 +6,12 @@ import { useExpenses } from '../../context/ExpensesContext';
 import { Expense } from '../../types';
 import { useCategories } from '../../context/CategoriesContext';
 import { formatVND } from '../../lib/vnd';
+import { useTheme } from '../../context/ThemeContext';
 
 const FILTERS = ['Hôm nay', 'Tuần này', 'Tháng này', 'Tháng trước'];
 
 export default function TransactionsScreen() {
+  const { colors } = useTheme();
   const { expenses, deleteExpense } = useExpenses();
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Tháng này');
@@ -36,6 +38,47 @@ export default function TransactionsScreen() {
   });
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
+
+  const styles = StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
+    header: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 24, paddingTop: 56, paddingBottom: 28,
+      borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden',
+    },
+    headerCircle: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: colors.accentBg },
+    headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 16 },
+    totalCard: { backgroundColor: colors.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.cardBorder },
+    totalLabel: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold, marginBottom: 4 },
+    totalAmt: { fontSize: 28, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: -0.5, marginBottom: 4 },
+    totalCount: { fontSize: 12, color: colors.textMuted, fontFamily: Fonts.semiBold },
+
+    segmentWrap: { backgroundColor: colors.bg, paddingHorizontal: 20, paddingVertical: 14 },
+    segment: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 14, padding: 4, borderWidth: 1, borderColor: colors.cardBorder },
+    segmentItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
+    segmentActive: { backgroundColor: colors.accent, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: colors.shadowOpacity, shadowRadius: 6, elevation: 3 },
+    segmentText: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted },
+    segmentTextActive: { color: colors.textPrimary },
+
+    scroll: { flex: 1, paddingHorizontal: 20, backgroundColor: colors.bg },
+    group: { marginBottom: 12, marginTop: 4 },
+    dateLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted, marginBottom: 6 },
+    groupCard: { backgroundColor: colors.card, borderRadius: 20, borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: colors.shadowOpacity, shadowRadius: 12, elevation: 3, overflow: 'hidden' },
+    txRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+    txBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+    txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    txInfo: { flex: 1 },
+    txCat: { fontSize: 14, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 2 },
+    txMeta: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.medium },
+    txRight: { alignItems: 'flex-end', gap: 3 },
+    txAmt: { fontSize: 13, fontFamily: Fonts.extraBold },
+    txEdit: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.medium },
+
+    empty: { alignItems: 'center', paddingVertical: 60 },
+    emptyText: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 6 },
+    emptySub: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium },
+    hint: { textAlign: 'center', fontSize: 11, color: colors.textMuted, paddingVertical: 8, fontFamily: Fonts.medium },
+  });
 
   const toLocaleDateStr = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -156,43 +199,3 @@ export default function TransactionsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3b1f6e' },
-  header: {
-    backgroundColor: '#3b1f6e',
-    paddingHorizontal: 24, paddingTop: 56, paddingBottom: 28,
-    borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden',
-  },
-  headerCircle: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: 'rgba(255,255,255,0.08)' },
-  headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 16 },
-  totalCard: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: 16 },
-  totalLabel: { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontFamily: Fonts.semiBold, marginBottom: 4 },
-  totalAmt: { fontSize: 28, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: -0.5, marginBottom: 4 },
-  totalCount: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.semiBold },
-
-  segmentWrap: { backgroundColor: '#eeeaf8', paddingHorizontal: 20, paddingVertical: 14 },
-  segment: { flexDirection: 'row', backgroundColor: '#ddd8f0', borderRadius: 14, padding: 4 },
-  segmentItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
-  segmentActive: { backgroundColor: '#fff', shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 3 },
-  segmentText: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4' },
-  segmentTextActive: { color: '#3b1f6e' },
-
-  scroll: { flex: 1, paddingHorizontal: 20, backgroundColor: '#eeeaf8' },
-  group: { marginBottom: 12, marginTop: 4 },
-  dateLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4', marginBottom: 6 },
-  groupCard: { backgroundColor: '#fff', borderRadius: 20, shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3, overflow: 'hidden' },
-  txRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
-  txBorder: { borderBottomWidth: 1, borderBottomColor: '#f5f3ff' },
-  txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  txInfo: { flex: 1 },
-  txCat: { fontSize: 14, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  txMeta: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
-  txRight: { alignItems: 'flex-end', gap: 3 },
-  txAmt: { fontSize: 13, fontFamily: Fonts.extraBold },
-  txEdit: { fontSize: 10, color: '#c4b5fd', fontFamily: Fonts.medium },
-
-empty: { alignItems: 'center', paddingVertical: 60 },
-  emptyText: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 6 },
-  emptySub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
-  hint: { textAlign: 'center', fontSize: 11, color: '#d4c9f0', paddingVertical: 8, fontFamily: Fonts.medium },
-});

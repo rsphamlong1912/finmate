@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { parseVND, formatVND } from '../lib/vnd';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { markOnboardingDone } from './_layout';
+import { useTheme } from '../context/ThemeContext';
 
 const QUICK_BUDGETS = [
   { label: '5tr', value: 5_000_000 },
@@ -20,6 +21,7 @@ const QUICK_BUDGETS = [
 ];
 
 export default function OnboardingScreen() {
+  const { colors } = useTheme();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [budgetInput, setBudgetInput] = useState('10000000');
@@ -45,6 +47,8 @@ export default function OnboardingScreen() {
     }
   };
 
+  const styles = makeStyles(colors);
+
   return (
     <View style={styles.root}>
 
@@ -58,14 +62,14 @@ export default function OnboardingScreen() {
             <Text style={styles.mainSub}>Để app gọi tên bạn{'\n'}thân thiện hơn</Text>
           </View>
           <View style={styles.body}>
-            <Dots total={3} current={1} />
+            <Dots total={3} current={1} colors={colors} />
             <Text style={styles.inputLabel}>Tên của bạn</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
               placeholder="VD: Long, Minh, Hương..."
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="words"
               autoFocus
             />
@@ -94,7 +98,7 @@ export default function OnboardingScreen() {
                 onChangeText={setBudgetInput}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={colors.textMuted}
                 selectTextOnFocus
               />
               <Text style={styles.amountCurrency}>₫</Text>
@@ -104,7 +108,7 @@ export default function OnboardingScreen() {
             )}
           </View>
           <View style={styles.body}>
-            <Dots total={3} current={2} />
+            <Dots total={3} current={2} colors={colors} />
             <Text style={styles.quickLabel}>Gợi ý nhanh</Text>
             <ScrollView
               horizontal
@@ -147,7 +151,7 @@ export default function OnboardingScreen() {
             <Text style={styles.mainSub}>Bắt đầu hành trình tài chính{'\n'}thông minh của bạn</Text>
           </View>
           <View style={styles.body}>
-            <Dots total={3} current={2} />
+            <Dots total={3} current={2} colors={colors} />
             <View style={styles.summaryCard}>
               {name.trim() && (
                 <View style={styles.summaryRow}>
@@ -181,93 +185,93 @@ export default function OnboardingScreen() {
   );
 }
 
-function Dots({ total, current }: { total: number; current: number }) {
+function Dots({ total, current, colors }: { total: number; current: number; colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors'] }) {
   return (
-    <View style={styles.dots}>
+    <View style={{ flexDirection: 'row', gap: 6, justifyContent: 'center', marginBottom: 24 }}>
       {Array.from({ length: total }).map((_, i) => (
-        <View key={i} style={[styles.dot, i === current && styles.dotActive]} />
+        <View key={i} style={[
+          { width: 7, height: 7, borderRadius: 99, backgroundColor: colors.divider },
+          i === current && { width: 22, backgroundColor: colors.accent }
+        ]} />
       ))}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#eeeaf8' },
+const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   fullScreen: { flex: 1 },
 
   topDark: {
-    backgroundColor: '#1a0a3c',
+    backgroundColor: colors.surface,
     paddingTop: 72, paddingBottom: 40, paddingHorizontal: 32,
     alignItems: 'center', overflow: 'hidden',
     borderBottomLeftRadius: 36, borderBottomRightRadius: 36,
   },
   topPurple: {
-    backgroundColor: '#3b1f6e',
+    backgroundColor: colors.surface,
     paddingTop: 72, paddingBottom: 32, paddingHorizontal: 32,
     alignItems: 'center', overflow: 'hidden',
     borderBottomLeftRadius: 36, borderBottomRightRadius: 36,
   },
-  circle1: { position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.07)' },
-  circle2: { position: 'absolute', bottom: -40, left: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.05)' },
+  circle1: { position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(129,140,248,0.08)' },
+  circle2: { position: 'absolute', bottom: -40, left: -40, width: 120, height: 120, borderRadius: 60, backgroundColor: colors.orb2 },
 
   bigIcon: { fontSize: 60, marginBottom: 14 },
-  mainTitle: { fontSize: 28, fontFamily: Fonts.extraBold, color: '#fff', textAlign: 'center', lineHeight: 34, marginBottom: 10, letterSpacing: -0.5 },
-  mainSub: { fontSize: 15, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 22, fontFamily: Fonts.medium },
+  mainTitle: { fontSize: 28, fontFamily: Fonts.extraBold, color: colors.textPrimary, textAlign: 'center', lineHeight: 34, marginBottom: 10, letterSpacing: -0.5 },
+  mainSub: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22, fontFamily: Fonts.medium },
 
   amountRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.inputBg,
     borderRadius: 16, paddingHorizontal: 16, paddingVertical: 12,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1, borderColor: colors.inputBorder,
     width: '100%', marginTop: 16,
   },
-  amountInput: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', flex: 1 },
-  amountCurrency: { fontSize: 18, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.6)' },
-  amountPreview: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold, marginTop: 8 },
+  amountInput: { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, flex: 1 },
+  amountCurrency: { fontSize: 18, fontFamily: Fonts.bold, color: colors.textMuted },
+  amountPreview: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold, marginTop: 8 },
 
-  body: { flex: 1, backgroundColor: '#eeeaf8', padding: 24, paddingTop: 20 },
+  body: { flex: 1, backgroundColor: colors.bg, padding: 24, paddingTop: 20 },
 
-  dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginBottom: 24 },
-  dot: { width: 7, height: 7, borderRadius: 99, backgroundColor: '#d4c9f0' },
-  dotActive: { width: 22, backgroundColor: '#6b4fa8' },
-
-  inputLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 8 },
+  inputLabel: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent, marginBottom: 8 },
   input: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    fontSize: 20, color: '#3b1f6e', fontFamily: Fonts.bold,
-    borderWidth: 2, borderColor: '#e4dff5', marginBottom: 20,
+    backgroundColor: colors.inputBg, borderRadius: 16, padding: 16,
+    fontSize: 20, color: colors.textPrimary, fontFamily: Fonts.bold,
+    borderWidth: 1, borderColor: colors.inputBorder, marginBottom: 20,
   },
 
-  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4', marginBottom: 10 },
+  quickLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted, marginBottom: 10 },
   quickScroll: { marginBottom: 20 },
   quickRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   quickBtn: {
-    backgroundColor: '#fff', borderRadius: 99,
+    backgroundColor: colors.card, borderRadius: 99,
     paddingHorizontal: 20, paddingVertical: 10,
-    borderWidth: 2, borderColor: '#e4dff5',
+    borderWidth: 1, borderColor: colors.inputBorder,
     height: 42, justifyContent: 'center',
   },
-  quickBtnActive: { backgroundColor: '#6b4fa8', borderColor: '#6b4fa8' },
-  quickBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: '#6b4fa8' },
-  quickBtnTextActive: { color: '#fff' },
+  quickBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  quickBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: colors.accent },
+  quickBtnTextActive: { color: colors.textPrimary },
 
   summaryCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    backgroundColor: colors.card, borderRadius: 20, padding: 20,
     gap: 14, marginBottom: 28,
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 12, elevation: 4,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, shadowRadius: 12, elevation: 4,
   },
   summaryRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   summaryIcon: { fontSize: 22 },
-  summaryText: { fontSize: 15, fontFamily: Fonts.semiBold, color: '#3b1f6e' },
+  summaryText: { fontSize: 15, fontFamily: Fonts.semiBold, color: colors.textPrimary },
 
   nextBtn: {
-    backgroundColor: '#6b4fa8', borderRadius: 18, paddingVertical: 17,
-    alignItems: 'center', shadowColor: '#6b4fa8',
+    backgroundColor: colors.accent, borderRadius: 18, paddingVertical: 17,
+    alignItems: 'center', shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3,
     shadowRadius: 14, elevation: 8, marginBottom: 12,
   },
-  nextBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
+  nextBtnText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
   skipBtn: { alignItems: 'center', paddingVertical: 10 },
-  skipText: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.semiBold },
+  skipText: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.semiBold },
 });

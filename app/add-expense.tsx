@@ -9,6 +9,7 @@ import { Fonts } from '../constants/fonts';
 import { useExpenses } from '../context/ExpensesContext';
 import { useCategories } from '../context/CategoriesContext';
 import { formatVND, parseVND } from '../lib/vnd';
+import { useTheme } from '../context/ThemeContext';
 
 const QUICK_AMOUNTS = [
   { label: '20k', value: 20_000 },
@@ -41,9 +42,17 @@ const EMOJI_OPTIONS = [
   // Khác
   '📦','🌿','💪','🎁','📱','💰','🏖️','🍀','🎀','🪴','🕯️',
 ];
-const COLOR_OPTIONS = ['#E8593C','#378ADD','#D4537E','#BA7517','#1D9E75','#7F77DD','#888780','#E67E22','#16A085','#8E44AD','#2C3E50','#C0392B'];
+const COLOR_OPTIONS = [
+  '#E8593C','#C0392B','#E91E63','#D4537E',
+  '#9C27B0','#8E44AD','#7F77DD','#3F51B5',
+  '#378ADD','#0288D1','#16A085','#1D9E75',
+  '#4CAF50','#8BC34A','#BA7517','#E67E22',
+  '#FF9800','#FFC107','#888780','#607D8B',
+  '#2C3E50','#795548','#F06292','#26C6DA',
+];
 
 export default function AddExpenseScreen() {
+  const { colors } = useTheme();
   const [rawInput, setRawInput] = useState('');
   const [category, setCategory] = useState('food');
   const [note, setNote] = useState('');
@@ -58,6 +67,8 @@ export default function AddExpenseScreen() {
   const [newEmoji, setNewEmoji] = useState('📌');
   const [newColor, setNewColor] = useState('#888780');
   const [savingCat, setSavingCat] = useState(false);
+
+  const usedColors = new Set(categories.map(c => c.color));
 
   const amount = parseVND(rawInput);
 
@@ -93,8 +104,10 @@ export default function AddExpenseScreen() {
     setShowNewCat(false);
     setNewName('');
     setNewEmoji('📌');
-    setNewColor('#888780');
+    setNewColor(COLOR_OPTIONS.find(c => !usedColors.has(c)) ?? COLOR_OPTIONS[0]);
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <KeyboardAvoidingView
@@ -121,7 +134,7 @@ export default function AddExpenseScreen() {
               onChangeText={setRawInput}
               keyboardType="numeric"
               placeholder="0"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textMuted}
               autoFocus
             />
             <Text style={styles.currency}>₫</Text>
@@ -157,8 +170,9 @@ export default function AddExpenseScreen() {
             style={styles.noteInput}
             value={note}
             onChangeText={setNote}
-            placeholder="Ví dụ: Cà phê Highland, Grab về nhà..."
-            placeholderTextColor="#c4b5fd"
+            placeholder="VD: Cà phê, Grab về nhà..."
+            placeholderTextColor={colors.textMuted}
+            numberOfLines={1}
           />
 
           <Text style={styles.sectionLabel}>Danh mục</Text>
@@ -176,7 +190,10 @@ export default function AddExpenseScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={styles.pillNew} onPress={() => setShowNewCat(true)}>
+            <TouchableOpacity style={styles.pillNew} onPress={() => {
+              setNewColor(COLOR_OPTIONS.find(c => !usedColors.has(c)) ?? COLOR_OPTIONS[0]);
+              setShowNewCat(true);
+            }}>
               <Text style={styles.pillNewText}>+ Tạo mới</Text>
             </TouchableOpacity>
           </View>
@@ -210,7 +227,7 @@ export default function AddExpenseScreen() {
             value={newName}
             onChangeText={setNewName}
             placeholder="Tên danh mục..."
-            placeholderTextColor="#c4b5fd"
+            placeholderTextColor={colors.textMuted}
             maxLength={20}
           />
 
@@ -231,7 +248,7 @@ export default function AddExpenseScreen() {
 
           <Text style={styles.modalSub}>Chọn màu</Text>
           <View style={styles.colorRow}>
-            {COLOR_OPTIONS.map(c => (
+            {COLOR_OPTIONS.filter(c => !usedColors.has(c)).map(c => (
               <TouchableOpacity
                 key={c}
                 style={[styles.colorDot, { backgroundColor: c }, newColor === c && styles.colorDotActive]}
@@ -253,11 +270,11 @@ export default function AddExpenseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3b1f6e' },
+const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
 
   header: {
-    backgroundColor: '#3b1f6e',
+    backgroundColor: colors.surface,
     paddingTop: 56, paddingBottom: 28, paddingHorizontal: 24,
     borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
     overflow: 'hidden',
@@ -265,105 +282,108 @@ const styles = StyleSheet.create({
   headerCircle: {
     position: 'absolute', top: -50, right: -50,
     width: 160, height: 160, borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(129,140,248,0.08)',
   },
   backBtn: { marginBottom: 10 },
-  backText: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
-  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: '#fff', marginBottom: 20 },
+  backText: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.bold },
+  headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 20 },
 
   amountRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   amountInput: {
-    fontSize: 44, fontFamily: Fonts.extraBold, color: '#fff',
-    flex: 1, letterSpacing: -1, padding: 0,
+    fontSize: 44, fontFamily: Fonts.extraBold, color: colors.textPrimary,
+    flex: 1, letterSpacing: -1, paddingVertical: 6, paddingHorizontal: 0,
+    includeFontPadding: false,
   },
-  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: 'rgba(255,255,255,0.5)', marginLeft: 6 },
-  amountPreview: { fontSize: 14, color: '#c4b5fd', fontFamily: Fonts.bold, marginBottom: 4 },
-  amountHint: { fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: Fonts.medium, marginBottom: 14 },
+  currency: { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textMuted, marginLeft: 6 },
+  amountPreview: { fontSize: 14, color: colors.accent, fontFamily: Fonts.bold, marginBottom: 4 },
+  amountHint: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.medium, marginBottom: 14 },
 
   quickRow: { flexDirection: 'row', gap: 7, paddingBottom: 4 },
   quickBtn: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.inputBg,
     borderRadius: 99, paddingHorizontal: 14, paddingVertical: 7,
+    borderWidth: 1, borderColor: colors.inputBorder,
   },
-  quickBtnActive: { backgroundColor: '#fff' },
-  quickBtnText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
-  quickBtnTextActive: { color: '#3b1f6e' },
+  quickBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  quickBtnText: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
+  quickBtnTextActive: { color: colors.textPrimary },
 
-  body: { flex: 1, backgroundColor: '#eeeaf8', padding: 20 },
+  body: { flex: 1, backgroundColor: colors.bg, padding: 20 },
 
   sectionLabel: {
-    fontSize: 13, fontFamily: Fonts.extraBold, color: '#3b1f6e',
+    fontSize: 13, fontFamily: Fonts.extraBold, color: colors.textMuted,
     marginBottom: 10, marginTop: 4,
   },
 
   noteInput: {
-    backgroundColor: '#fff', borderRadius: 14,
+    backgroundColor: colors.inputBg, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 13,
-    fontSize: 14, color: '#3b1f6e', fontFamily: Fonts.medium,
-    borderWidth: 1.5, borderColor: '#e4dff5',
+    fontSize: 14, color: colors.textPrimary, fontFamily: Fonts.medium,
+    borderWidth: 1, borderColor: colors.inputBorder,
     marginBottom: 20,
   },
 
   pillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
   pill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#fff', borderRadius: 99,
+    backgroundColor: colors.card, borderRadius: 99,
     paddingVertical: 8, paddingHorizontal: 14,
-    borderWidth: 1.5, borderColor: '#e4dff5',
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 6, elevation: 2,
   },
   pillIcon: { fontSize: 16 },
-  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
-  pillLabelActive: { color: '#fff' },
+  pillLabel: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
+  pillLabelActive: { color: colors.textPrimary },
   pillNew: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'transparent', borderRadius: 99,
     paddingVertical: 8, paddingHorizontal: 14,
-    borderWidth: 1.5, borderColor: '#6b4fa8', borderStyle: 'dashed',
+    borderWidth: 1, borderColor: colors.accentBorder, borderStyle: 'dashed',
   },
-  pillNewText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
+  pillNewText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
 
   saveBtn: {
-    backgroundColor: '#3b1f6e', borderRadius: 18,
+    backgroundColor: colors.accent, borderRadius: 18,
     paddingVertical: 17, alignItems: 'center',
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 6 },
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
   },
   saveBtnDisabled: { opacity: 0.45 },
-  saveBtnText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
+  saveBtnText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
 
   // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)' },
   modalSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28,
     padding: 24, paddingBottom: 40,
+    borderWidth: 1, borderColor: colors.cardBorder,
   },
   modalHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#e4dff5',
+    width: 40, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder,
     alignSelf: 'center', marginBottom: 16,
   },
-  modalTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 16 },
   modalPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
   modalPreviewName: { fontSize: 18, fontFamily: Fonts.bold },
   modalInput: {
-    backgroundColor: '#eeeaf8', borderRadius: 14,
+    backgroundColor: colors.inputBg, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.medium,
-    marginBottom: 16, borderWidth: 1.5, borderColor: '#e4dff5',
+    fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.medium,
+    marginBottom: 16, borderWidth: 1, borderColor: colors.inputBorder,
   },
-  modalSub: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8', marginBottom: 8 },
+  modalSub: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.accent, marginBottom: 8 },
   emojiBtn: {
     width: 44, height: 44, borderRadius: 12,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#eeeaf8',
+    backgroundColor: colors.card,
   },
-  emojiBtnActive: { backgroundColor: '#e4dff5', borderWidth: 2, borderColor: '#6b4fa8' },
+  emojiBtnActive: { backgroundColor: colors.accentBg, borderWidth: 2, borderColor: colors.accent },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   colorDot: { width: 32, height: 32, borderRadius: 16 },
-  colorDotActive: { borderWidth: 3, borderColor: '#3b1f6e' },
+  colorDotActive: { borderWidth: 3, borderColor: colors.accent },
   modalSaveBtn: {
-    backgroundColor: '#3b1f6e', borderRadius: 18,
+    backgroundColor: colors.accent, borderRadius: 18,
     paddingVertical: 15, alignItems: 'center',
   },
 });

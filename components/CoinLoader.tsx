@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 export function CoinLoader() {
+  const { colors } = useTheme();
   const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function CoinLoader() {
   });
 
   return (
-    <View style={styles.overlay}>
+    <View style={[styles.overlay, { backgroundColor: colors.bg }]}>
       <View style={styles.card}>
         <Animated.View style={[styles.coin, { transform: [{ rotateY }] }]}>
           <Text style={styles.symbol}>₫</Text>
@@ -45,7 +47,6 @@ const styles = StyleSheet.create({
   overlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: '#eeeaf8',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,

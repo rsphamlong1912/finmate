@@ -72,6 +72,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
+    setLoading(true);
 
     const { data, error } = await supabase
       .from('profiles')

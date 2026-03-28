@@ -7,7 +7,7 @@ type GoalsContextType = {
   goals: Goal[];
   loading: boolean;
   addGoal: (data: { title: string; target_amount: number; deadline?: string }) => Promise<{ error: any }>;
-  updateGoal: (id: string, data: { title: string; target_amount: number; deadline?: string }) => Promise<{ error: any }>;
+  updateGoal: (id: string, data: { title: string; target_amount: number; deadline?: string; saved_amount?: number }) => Promise<{ error: any }>;
   addSavings: (goalId: string, amount: number) => Promise<{ error: any }>;
   deleteGoal: (id: string) => Promise<void>;
   refetch: () => Promise<void>;
@@ -22,6 +22,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const fetchGoals = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
+    setLoading(true);
     const { data } = await supabase
       .from('goals')
       .select('*')
@@ -58,13 +59,15 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
-  const updateGoal = async (id: string, data: { title: string; target_amount: number; deadline?: string }) => {
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...data, deadline: data.deadline ?? null } : g));
-    const { error } = await supabase.from('goals').update({
+  const updateGoal = async (id: string, data: { title: string; target_amount: number; deadline?: string; saved_amount?: number }) => {
+    const patch: Record<string, any> = {
       title: data.title,
       target_amount: data.target_amount,
       deadline: data.deadline ?? null,
-    }).eq('id', id);
+    };
+    if (data.saved_amount !== undefined) patch.saved_amount = data.saved_amount;
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...patch } : g));
+    const { error } = await supabase.from('goals').update(patch).eq('id', id);
     if (error) {
       await fetchGoals();
       return { error };

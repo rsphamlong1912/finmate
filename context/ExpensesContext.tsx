@@ -23,6 +23,7 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
 
   const fetchExpenses = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
+    setLoading(true);
     const { data } = await supabase
       .from('expenses')
       .select('*')

@@ -6,7 +6,8 @@
     "scheme": "finmate",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#080813",
     "splash": {
       "image": "./assets/my-splash.png",
       "resizeMode": "cover",
@@ -33,7 +34,8 @@
       "expo-router",
       "expo-splash-screen",
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      "expo-sharing"
     ]
   }
 }

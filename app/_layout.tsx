@@ -11,6 +11,9 @@ import { ProfileProvider } from '../context/ProfileContext';
 import { ExpensesProvider } from '../context/ExpensesContext';
 import { GoalsProvider } from '../context/GoalsContext';
 import { CategoriesProvider } from '../context/CategoriesContext';
+import { AchievementsProvider } from '../context/AchievementsContext';
+import { ThemeProvider } from '../context/ThemeContext';
+import { LightTheme } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 
@@ -77,7 +80,7 @@ function RootNavigator() {
     const inOnboarding = segments[0] === 'onboarding';
     const inTabs = segments[0] === '(tabs)';
     const inIntro = segments[0] === 'intro';
-    const inModal = segments[0] === 'add-expense' || segments[0] === 'edit-expense';
+    const inModal = segments[0] === 'add-expense' || segments[0] === 'edit-expense' || segments[0] === 'achievements';
 
     if (inModal) return;
 
@@ -98,13 +101,14 @@ function RootNavigator() {
   }, [session, loading, introDone, onboardingDone, segments]);
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: LightTheme.bg } }}>
       <Stack.Screen name="intro" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="onboarding" />
-      <Stack.Screen name="add-expense" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="add-expense"  options={{ presentation: 'modal' }} />
       <Stack.Screen name="edit-expense" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="achievements" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -125,14 +129,18 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <ProfileProvider>
-      <ExpensesProvider>
-        <GoalsProvider>
-          <CategoriesProvider>
-            <RootNavigator />
-          </CategoriesProvider>
-        </GoalsProvider>
-      </ExpensesProvider>
-    </ProfileProvider>
+    <ThemeProvider>
+      <ProfileProvider>
+        <ExpensesProvider>
+          <GoalsProvider>
+            <CategoriesProvider>
+              <AchievementsProvider>
+                <RootNavigator />
+              </AchievementsProvider>
+            </CategoriesProvider>
+          </GoalsProvider>
+        </ExpensesProvider>
+      </ProfileProvider>
+    </ThemeProvider>
   );
 }

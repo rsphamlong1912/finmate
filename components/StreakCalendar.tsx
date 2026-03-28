@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Fonts } from '../constants/fonts';
+import { useTheme } from '../context/ThemeContext';
 
 type Props = {
   streakDates: string[];
@@ -38,6 +39,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 export function StreakCalendar({ streakDates, streakCount }: Props) {
+  const { colors } = useTheme();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -78,6 +80,7 @@ export function StreakCalendar({ streakDates, streakCount }: Props) {
   const totalDaysInMonth = getDaysInMonth(viewYear, viewMonth);
   const pct = Math.round((activeThisMonth / totalDaysInMonth) * 100);
 
+  const styles = makeStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -158,14 +161,16 @@ export function StreakCalendar({ streakDates, streakCount }: Props) {
 
 const CELL_SIZE = 36;
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.card,
     borderRadius: 20,
     padding: 18,
-    shadowColor: '#3b1f6e',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 3,
   },
@@ -178,18 +183,18 @@ const styles = StyleSheet.create({
   },
   navBtn: {
     width: 36, height: 36, borderRadius: 12,
-    backgroundColor: '#f5f3ff',
+    backgroundColor: colors.cardBorder,
     alignItems: 'center', justifyContent: 'center',
   },
-  navArrow: { fontSize: 20, color: '#6b4fa8', fontFamily: Fonts.bold, lineHeight: 24 },
-  navArrowDisabled: { color: '#e4dff5' },
-  monthTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: '#3b1f6e' },
+  navArrow: { fontSize: 20, color: colors.accent, fontFamily: Fonts.bold, lineHeight: 24 },
+  navArrowDisabled: { color: colors.textMuted },
+  monthTitle: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary },
 
   weekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   cellWrap: { width: CELL_SIZE, alignItems: 'center' },
-  dayLabel: { fontSize: 11, fontFamily: Fonts.bold, color: '#c4b5fd', letterSpacing: 0.3 },
+  dayLabel: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textMuted, letterSpacing: 0.3 },
 
-  divider: { height: 1, backgroundColor: '#f5f3ff', marginBottom: 10, marginHorizontal: -4 },
+  divider: { height: 1, backgroundColor: colors.divider, marginBottom: 10, marginHorizontal: -4 },
 
   cell: {
     width: CELL_SIZE, height: CELL_SIZE,
@@ -198,13 +203,13 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     gap: 1,
   },
-  cellActive: { backgroundColor: '#ff6b35' },
-  cellToday: { borderWidth: 2, borderColor: '#6b4fa8', borderRadius: 10 },
-  cellTodayActive: { backgroundColor: '#e8521a', borderRadius: 10 },
+  cellActive: { backgroundColor: 'rgba(251,146,60,0.85)' },
+  cellToday: { borderWidth: 2, borderColor: colors.accent, borderRadius: 10 },
+  cellTodayActive: { backgroundColor: '#f97316', borderRadius: 10 },
 
-  cellText: { fontSize: 12, fontFamily: Fonts.medium, color: '#3b1f6e' },
-  cellTextActive: { color: '#fff', fontFamily: Fonts.extraBold },
-  cellTextToday: { color: '#6b4fa8', fontFamily: Fonts.extraBold },
+  cellText: { fontSize: 12, fontFamily: Fonts.medium, color: colors.textSecondary },
+  cellTextActive: { color: colors.textPrimary, fontFamily: Fonts.extraBold },
+  cellTextToday: { color: colors.accent, fontFamily: Fonts.extraBold },
   cellCoin: { fontSize: 8, lineHeight: 10 },
 
   statsRow: {
@@ -214,11 +219,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#f5f3ff',
+    borderTopColor: colors.divider,
   },
   statPill: { flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: 16 },
-  statPillNum: { fontSize: 20, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
-  statPillLabel: { fontSize: 12, fontFamily: Fonts.medium, color: '#9b8cc4' },
-  statDivider: { width: 1, height: 24, backgroundColor: '#ede9f8' },
+  statPillNum: { fontSize: 20, fontFamily: Fonts.extraBold, color: colors.accent },
+  statPillLabel: { fontSize: 12, fontFamily: Fonts.medium, color: colors.textMuted },
+  statDivider: { width: 1, height: 24, backgroundColor: colors.inputBorder },
 
 });

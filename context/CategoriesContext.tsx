@@ -22,6 +22,7 @@ export function CategoriesProvider({ children }: { children: ReactNode }) {
 
   const fetchCustom = useCallback(async () => {
     if (!user?.id) { setLoading(false); return; }
+    setLoading(true);
     const { data } = await supabase
       .from('user_categories')
       .select('*')

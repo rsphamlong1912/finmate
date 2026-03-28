@@ -2,47 +2,48 @@ import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Animated, Modal
 } from 'react-native';
+
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useCategories } from '../../context/CategoriesContext';
+import { useGoals } from '../../context/GoalsContext';
 import { formatVND } from '../../lib/vnd';
 import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
 import { StreakCalendar } from '../../components/StreakCalendar';
 import { CoinLoader } from '../../components/CoinLoader';
 import { StreakCelebrationModal } from '../../components/StreakCelebrationModal';
+import { useTheme } from '../../context/ThemeContext';
 
 
 export default function DashboardScreen() {
-  const { user } = useAuth();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { user, loading: authLoading } = useAuth();
   const { totalThisMonth, byCategory, expenses, loading: expensesLoading } = useExpenses();
   const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading, newStreakDay, clearNewStreakDay } = useProfile();
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji, loading: categoriesLoading } = useCategories();
+  const { goals } = useGoals();
   const router = useRouter();
 
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
-  const loaderTimerDone = useRef(false);
-  const dataReady = useRef(false);
+  const [timerDone, setTimerDone] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loaderTimerDone.current = true;
-      if (dataReady.current) setShowLoader(false);
-    }, 1500);
+    const timer = setTimeout(() => setTimerDone(true), 1500);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!profileLoading && !expensesLoading && !categoriesLoading) {
-      dataReady.current = true;
-      if (loaderTimerDone.current) setShowLoader(false);
+    if (timerDone && !authLoading && !profileLoading && !expensesLoading && !categoriesLoading) {
+      setShowLoader(false);
     }
-  }, [profileLoading, expensesLoading, categoriesLoading]);
+  }, [timerDone, authLoading, profileLoading, expensesLoading, categoriesLoading]);
 
   useEffect(() => {
     if (!showLoader && newStreakDay) {
@@ -50,6 +51,9 @@ export default function DashboardScreen() {
       return () => clearTimeout(t);
     }
   }, [showLoader, newStreakDay]);
+
+  const [insightIndex, setInsightIndex] = useState(0);
+  const insightFade = useRef(new Animated.Value(1)).current;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -158,61 +162,148 @@ export default function DashboardScreen() {
   const now = new Date();
   const monthName = now.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
 
-  // Insight cho recap banner
   const topCat = Object.entries(byCategory).sort(([, a], [, b]) => b - a)[0];
   const topCatName = topCat ? getCategoryLabel(topCat[0]) : null;
-
   const pctBudget = Math.round(pct);
-
-  // Insight card
-  const topCatPct = topCat
-    ? Math.round((topCat[1] / (totalThisMonth || 1)) * 100)
-    : 0;
+  const topCatPct = topCat ? Math.round((topCat[1] / (totalThisMonth || 1)) * 100) : 0;
+  const daysElapsed = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = daysInMonth - daysElapsed;
+  const dailyAvg = daysElapsed > 0 ? totalThisMonth / daysElapsed : 0;
+  const dailyAllowed = daysRemaining > 0 ? remaining / daysRemaining : 0;
   type BodyPart = { text: string; bold?: boolean };
-  const insight = (() => {
-    if (totalThisMonth === 0) return {
-      emoji: '🌱',
-      title: 'Chưa có giao dịch nào',
-      bodyParts: [{ text: 'Thêm chi tiêu đầu tiên để FinMate bắt đầu phân tích cho bạn.' }] as BodyPart[],
-      prompt: '💡 Gợi ý tiết kiệm cho tôi',
-      bg: '#f0f4ff', border: '#c7d6ff', titleColor: '#1e3a8a',
-      bodyColor: '#3b5299', badgeBg: '#e4dff5', badgeColor: '#1e40af', ctaColor: '#1e40af',
-    };
-    if (pct >= 90) return {
-      emoji: '😬',
-      title: `Đã dùng ${pctBudget}% ngân sách`,
-      bodyParts: [
-        { text: 'Bạn sắp vượt mức tháng này. ' },
-        ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm nhiều nhất (${topCatPct}%). ` }] : []),
-        { text: 'Muốn tôi gợi ý cắt giảm không?' },
-      ] as BodyPart[],
-      prompt: '⚠️ Tôi đang tiêu quá tay không?',
-      bg: '#fff5f5', border: '#fecaca', titleColor: '#7f1d1d',
-      bodyColor: '#b91c1c', badgeBg: '#fee2e2', badgeColor: '#991b1b', ctaColor: '#dc2626',
-    };
-    if (pct >= 60) return {
-      emoji: '🤔',
-      title: topCatName ? `${topCatName} chiếm ${topCatPct}%` : `Đã dùng ${pctBudget}% ngân sách`,
-      bodyParts: [
-        { text: `Bạn đã dùng ${pctBudget}% ngân sách tháng này. Hãy để FinMate giúp bạn cân bằng lại.` },
-      ] as BodyPart[],
-      prompt: '📊 Phân tích chi tiêu tháng này',
-      bg: '#fffbeb', border: '#fde68a', titleColor: '#78350f',
-      bodyColor: '#92400e', badgeBg: '#fef3c7', badgeColor: '#b45309', ctaColor: '#d97706',
-    };
-    return {
-      emoji: '💪',
-      title: 'Bạn đang kiểm soát tốt!',
-      bodyParts: [
-        { text: `Mới dùng ${pctBudget}% ngân sách. ` },
-        ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm ${topCatPct}% chi tiêu. ` }] : []),
-        { text: 'Tiếp tục phát huy nhé!' },
-      ] as BodyPart[],
-      prompt: '🎯 Lập kế hoạch ngân sách',
-      bg: '#f5f3ff', border: '#bbf7d0', titleColor: '#14532d',
-      bodyColor: '#166534', badgeBg: '#dcfce7', badgeColor: '#15803d', ctaColor: '#16a34a',
-    };
+  type InsightCard = {
+    emoji: string; title: string; bodyParts: BodyPart[]; prompt: string;
+    bg: string; border: string; titleColor: string; bodyColor: string;
+    badgeBg: string; badgeColor: string; ctaColor: string;
+  };
+
+  const insights: InsightCard[] = (() => {
+    const list: InsightCard[] = [];
+
+    // 1. Budget status
+    if (totalThisMonth === 0) {
+      list.push({
+        emoji: '🌱', title: 'Chưa có giao dịch nào',
+        bodyParts: [{ text: 'Thêm chi tiêu đầu tiên để FinMate bắt đầu phân tích cho bạn.' }],
+        prompt: '💡 Gợi ý tiết kiệm cho tôi',
+        bg: 'rgba(129,140,248,0.08)', border: 'rgba(129,140,248,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(129,140,248,0.15)', badgeColor: colors.accent, ctaColor: colors.accent,
+      });
+    } else if (pct >= 90) {
+      list.push({
+        emoji: '😬', title: `Đã dùng ${pctBudget}% ngân sách`,
+        bodyParts: [
+          { text: 'Bạn sắp vượt mức tháng này. ' },
+          ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm nhiều nhất (${topCatPct}%). ` }] : []),
+          { text: 'Muốn tôi gợi ý cắt giảm không?' },
+        ],
+        prompt: '⚠️ Tôi đang tiêu quá tay không?',
+        bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(239,68,68,0.12)', badgeColor: colors.danger, ctaColor: colors.danger,
+      });
+    } else if (pct >= 60) {
+      list.push({
+        emoji: '🤔', title: topCatName ? `${topCatName} chiếm ${topCatPct}%` : `Đã dùng ${pctBudget}% ngân sách`,
+        bodyParts: [{ text: `Bạn đã dùng ${pctBudget}% ngân sách tháng này. Hãy để FinMate giúp cân bằng lại.` }],
+        prompt: '📊 Phân tích chi tiêu tháng này',
+        bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(251,191,36,0.12)', badgeColor: colors.warning, ctaColor: colors.warning,
+      });
+    } else {
+      list.push({
+        emoji: '💪', title: 'Bạn đang kiểm soát tốt!',
+        bodyParts: [
+          { text: `Mới dùng ${pctBudget}% ngân sách. ` },
+          ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm ${topCatPct}% chi tiêu. ` }] : []),
+          { text: 'Tiếp tục phát huy nhé!' },
+        ],
+        prompt: '🎯 Lập kế hoạch ngân sách',
+        bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(52,211,153,0.12)', badgeColor: colors.success, ctaColor: colors.success,
+      });
+    }
+
+    // 2. Spending velocity (nếu có data và còn ngày trong tháng)
+    if (totalThisMonth > 0 && daysRemaining > 0) {
+      const overSpeed = dailyAvg > dailyAllowed;
+      list.push({
+        emoji: overSpeed ? '⚡' : '📈',
+        title: overSpeed ? 'Đang chi vượt tốc độ' : 'Tốc độ chi tiêu ổn định',
+        bodyParts: [
+          { text: 'Trung bình bạn chi ' },
+          { text: formatVND(Math.round(dailyAvg)), bold: true },
+          { text: '/ngày. Còn ' },
+          { text: `${daysRemaining} ngày`, bold: true },
+          { text: ', mỗi ngày chỉ nên chi tối đa ' },
+          { text: formatVND(Math.round(dailyAllowed)), bold: true },
+          { text: ' để không vượt ngân sách.' },
+        ],
+        prompt: `Tôi đang chi ${formatVND(Math.round(dailyAvg))}/ngày, hãy giúp tôi tối ưu chi tiêu`,
+        bg: overSpeed ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)',
+        border: overSpeed ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)',
+        titleColor: colors.textPrimary, bodyColor: colors.textSecondary,
+        badgeBg: overSpeed ? 'rgba(239,68,68,0.12)' : 'rgba(52,211,153,0.12)',
+        badgeColor: overSpeed ? colors.danger : colors.success,
+        ctaColor: overSpeed ? colors.danger : colors.success,
+      });
+    }
+
+    // 3. Streak
+    const streak = profile?.streak_count ?? 0;
+    if (streak > 0) {
+      list.push({
+        emoji: streak >= 7 ? '🔥' : '⚡',
+        title: `${streak} ngày streak liên tiếp!`,
+        bodyParts: [
+          { text: streak >= 30 ? 'Xuất sắc! ' : streak >= 7 ? 'Tuyệt vời! ' : 'Khởi đầu tốt! ' },
+          { text: `Bạn đã theo dõi tài chính ` },
+          { text: `${streak} ngày`, bold: true },
+          { text: ' liên tiếp. Đừng bỏ lỡ hôm nay nhé!' },
+        ],
+        prompt: 'Tôi đã theo dõi tài chính tốt chưa?',
+        bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(251,191,36,0.12)', badgeColor: colors.warning, ctaColor: colors.warning,
+      });
+    }
+
+    // 4. Goals progress (goal gần hoàn thành nhất)
+    const activeGoals = goals.filter(g => g.saved_amount < g.target_amount);
+    if (activeGoals.length > 0) {
+      const closest = activeGoals.reduce((a, b) =>
+        (b.saved_amount / b.target_amount) > (a.saved_amount / a.target_amount) ? b : a
+      );
+      const goalPct = Math.round((closest.saved_amount / closest.target_amount) * 100);
+      list.push({
+        emoji: '🎯', title: `Mục tiêu: ${closest.title}`,
+        bodyParts: [
+          { text: `Đã tiết kiệm ` },
+          { text: `${goalPct}%`, bold: true },
+          { text: ` (${formatVND(closest.saved_amount)} / ${formatVND(closest.target_amount)}). ` },
+          { text: goalPct >= 80 ? 'Gần đến đích rồi, cố lên!' : 'Tiếp tục duy trì nhé!' },
+        ],
+        prompt: `Gợi ý giúp tôi đạt mục tiêu "${closest.title}" nhanh hơn`,
+        bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', titleColor: colors.textPrimary,
+        bodyColor: colors.textSecondary, badgeBg: 'rgba(52,211,153,0.12)', badgeColor: colors.success, ctaColor: colors.success,
+      });
+    }
+
+    return list;
   })();
+
+  const insight = insights[Math.min(insightIndex, insights.length - 1)];
+
+  // Auto-rotate mỗi 4.5s với fade transition
+  useEffect(() => {
+    if (insights.length <= 1) return;
+    const interval = setInterval(() => {
+      Animated.timing(insightFade, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
+        setInsightIndex(i => (i + 1) % insights.length);
+        Animated.timing(insightFade, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+      });
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [insights.length]);
 
   return (
     <View style={styles.root}>
@@ -223,8 +314,8 @@ export default function DashboardScreen() {
             <Svg width="100%" height="100%">
               <Defs>
                 <Pattern id="grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <Line x1="28" y1="0" x2="28" y2="28" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
-                  <Line x1="0" y1="28" x2="28" y2="28" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" />
+                  <Line x1="28" y1="0" x2="28" y2="28" stroke={colors.divider} strokeWidth="0.5" />
+                  <Line x1="0" y1="28" x2="28" y2="28" stroke={colors.divider} strokeWidth="0.5" />
                 </Pattern>
               </Defs>
               <Rect width="100%" height="100%" fill="url(#grid)" />
@@ -302,33 +393,49 @@ export default function DashboardScreen() {
       >
         <View style={styles.bottom}>
 
-          {/* AI Insight Card */}
+          {/* AI Insight Card — rotating */}
           <Animated.View style={{ opacity: insightOpacity, transform: [{ scale: insightScale }, { translateY: insightTranslateY }] }}>
-          <TouchableOpacity
-            style={[styles.insightCard, { backgroundColor: insight.bg, borderColor: insight.border }]}
-            activeOpacity={0.85}
-            onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: insight.prompt } })}
-          >
-            <View style={styles.insightTop}>
-              <Text style={styles.insightEmoji}>{insight.emoji}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.insightTitle, { color: insight.titleColor }]}>{insight.title}</Text>
-                <Text style={[styles.insightBody, { color: insight.bodyColor }]}>
-                  {insight.bodyParts.map((p, i) =>
-                    p.bold
-                      ? <Text key={i} style={{ fontFamily: Fonts.bold, color: insight.titleColor }}>{p.text}</Text>
-                      : p.text
-                  )}
-                </Text>
+            <Animated.View style={{ opacity: insightFade }}>
+              <TouchableOpacity
+                style={[styles.insightCard, { backgroundColor: insight.bg, borderColor: insight.border }]}
+                activeOpacity={0.85}
+                onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: insight.prompt } })}
+              >
+                <View style={styles.insightTop}>
+                  <Text style={styles.insightEmoji}>{insight.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.insightTitle, { color: insight.titleColor }]}>{insight.title}</Text>
+                    <Text style={[styles.insightBody, { color: insight.bodyColor }]}>
+                      {insight.bodyParts.map((p, i) =>
+                        p.bold
+                          ? <Text key={i} style={{ fontFamily: Fonts.bold, color: insight.titleColor }}>{p.text}</Text>
+                          : p.text
+                      )}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.insightFooter}>
+                  <View style={[styles.insightBadge, { backgroundColor: insight.badgeBg }]}>
+                    <Text style={[styles.insightBadgeText, { color: insight.badgeColor }]}>✦ FinMate AI</Text>
+                  </View>
+                  <Text style={[styles.insightCta, { color: insight.ctaColor }]}>Hỏi FinMate →</Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+            {insights.length > 1 && (
+              <View style={styles.insightDots}>
+                {insights.map((_, i) => (
+                  <TouchableOpacity key={i} onPress={() => {
+                    Animated.timing(insightFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+                      setInsightIndex(i);
+                      Animated.timing(insightFade, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+                    });
+                  }}>
+                    <View style={[styles.insightDot, i === insightIndex && styles.insightDotActive, { backgroundColor: i === insightIndex ? insight.badgeColor : colors.divider }]} />
+                  </TouchableOpacity>
+                ))}
               </View>
-            </View>
-            <View style={styles.insightFooter}>
-              <View style={[styles.insightBadge, { backgroundColor: insight.badgeBg }]}>
-                <Text style={[styles.insightBadgeText, { color: insight.badgeColor }]}>✦ FinMate AI</Text>
-              </View>
-              <Text style={[styles.insightCta, { color: insight.ctaColor }]}>Hỏi FinMate →</Text>
-            </View>
-          </TouchableOpacity>
+            )}
           </Animated.View>
 
           {/* Recent */}
@@ -448,148 +555,109 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#eeeaf8' },
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.bg },
 
-  top: {
-    backgroundColor: '#1a0a3c',
-    paddingTop: 56, paddingBottom: 40, paddingHorizontal: 24,
-    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  orb1: { position: 'absolute', top: -70, right: -70, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(107,79,168,0.4)' },
-  orb2: { position: 'absolute', bottom: -40, left: -50, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(59,31,110,0.5)' },
-  orb3: { position: 'absolute', top: 50, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(196,181,253,0.1)' },
-  ring1: { position: 'absolute', top: -20, right: 20, width: 90, height: 90, borderRadius: 45, borderWidth: 1, borderColor: 'rgba(255,255,255,0.07)' },
-  ring2: { position: 'absolute', bottom: 20, right: 60, width: 45, height: 45, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  dot: { position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.6)' },
+    top: {
+      backgroundColor: colors.surface,
+      paddingTop: 56, paddingBottom: 40, paddingHorizontal: 24,
+      borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
+      overflow: 'hidden',
+    },
+    orb1: { position: 'absolute', top: -70, right: -70, width: 200, height: 200, borderRadius: 100, backgroundColor: colors.orb1 },
+    orb2: { position: 'absolute', bottom: -40, left: -50, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.orb2 },
+    orb3: { position: 'absolute', top: 50, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: colors.accentBg },
+    ring1: { position: 'absolute', top: -20, right: 20, width: 90, height: 90, borderRadius: 45, borderWidth: 1, borderColor: colors.divider },
+    ring2: { position: 'absolute', bottom: 20, right: 60, width: 45, height: 45, borderRadius: 23, borderWidth: 1, borderColor: colors.divider },
+    dot: { position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textSecondary },
 
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  greeting: { fontSize: 18, fontFamily: Fonts.extraBold, color: '#fff' },
-  period: { fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2, fontFamily: Fonts.medium },
-  avatarBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  avatarText: { fontSize: 17, fontFamily: Fonts.extraBold, color: '#fff' },
+    topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+    greeting: { fontSize: 18, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+    period: { fontSize: 12, color: colors.textSecondary, marginTop: 2, fontFamily: Fonts.medium },
+    avatarBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.accentBorder },
+    avatarText: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
 
-  totalLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold, marginBottom: 4 },
-  totalAmount: { fontSize: 36, fontFamily: Fonts.extraBold, color: '#fff', letterSpacing: -1, marginBottom: 14 },
+    totalLabel: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold, marginBottom: 4 },
+    totalAmount: { fontSize: 36, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: -1, marginBottom: 14 },
 
-  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginBottom: 18 },
-  streakText: { fontSize: 12, color: '#fff', fontFamily: Fonts.extraBold },
-  streakArrow: { fontSize: 14, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold, marginLeft: 2 },
+    streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginBottom: 18 },
+    streakText: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
+    streakArrow: { fontSize: 14, color: colors.textSecondary, fontFamily: Fonts.bold, marginLeft: 2 },
 
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(10,4,30,0.65)',
-    justifyContent: 'flex-end',
-    flexDirection: 'column',
-  },
-  modalSheet: {
-    backgroundColor: '#f5f3ff',
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    maxHeight: '88%',
-    paddingBottom: 36,
-    overflow: 'hidden',
-  },
-  modalHandle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    alignSelf: 'center',
-    position: 'absolute', top: 10, zIndex: 10,
-  },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(10,4,30,0.65)', justifyContent: 'flex-end', flexDirection: 'column' },
+    modalSheet: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 28, borderTopRightRadius: 28,
+      maxHeight: '88%', paddingBottom: 36, overflow: 'hidden',
+      borderWidth: 1, borderColor: colors.cardBorder,
+    },
+    modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder, alignSelf: 'center', position: 'absolute', top: 10, zIndex: 10 },
 
-  /* Banner */
-  modalBanner: {
-    backgroundColor: '#1a0a3c',
-    paddingTop: 20, paddingBottom: 16,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  bannerOrb1: {
-    position: 'absolute', top: -50, right: -50,
-    width: 150, height: 150, borderRadius: 75,
-    backgroundColor: 'rgba(107,79,168,0.45)',
-  },
-  bannerOrb2: {
-    position: 'absolute', bottom: -40, left: -40,
-    width: 110, height: 110, borderRadius: 55,
-    backgroundColor: 'rgba(59,31,110,0.5)',
-  },
-  bannerCloseBtn: {
-    position: 'absolute', top: 14, right: 16,
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  bannerCloseTxt: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontFamily: Fonts.bold },
-  bannerFire: { fontSize: 28, marginBottom: 4 },
-  bannerCount: { fontSize: 40, fontFamily: Fonts.extraBold, color: '#fff', lineHeight: 44 },
-  bannerLabel: { fontSize: 13, fontFamily: Fonts.semiBold, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
-  bannerHint: { fontSize: 12, fontFamily: Fonts.medium, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 17 },
+    modalBanner: { backgroundColor: colors.surface, paddingTop: 20, paddingBottom: 16, alignItems: 'center', overflow: 'hidden' },
+    bannerOrb1: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: colors.orb1 },
+    bannerOrb2: { position: 'absolute', bottom: -40, left: -40, width: 110, height: 110, borderRadius: 55, backgroundColor: colors.orb2 },
+    bannerCloseBtn: { position: 'absolute', top: 14, right: 16, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+    bannerCloseTxt: { color: colors.textSecondary, fontSize: 13, fontFamily: Fonts.bold },
+    bannerFire: { fontSize: 28, marginBottom: 4 },
+    bannerCount: { fontSize: 40, fontFamily: Fonts.extraBold, color: colors.textPrimary, lineHeight: 44 },
+    bannerLabel: { fontSize: 13, fontFamily: Fonts.semiBold, color: colors.textSecondary, marginBottom: 8 },
+    bannerHint: { fontSize: 12, fontFamily: Fonts.medium, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
 
-  modalBody: { padding: 20, paddingBottom: 8 },
+    modalBody: { padding: 20, paddingBottom: 8 },
 
+    progRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    progLabel: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold },
+    progPct: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
+    progTrack: { backgroundColor: colors.divider, borderRadius: 99, height: 7, overflow: 'hidden', marginBottom: 10 },
+    progFill: { height: 7, borderRadius: 99, backgroundColor: colors.accent },
+    progBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    progSub: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.bold },
+    reportLink: { fontSize: 12, color: colors.accent, fontFamily: Fonts.bold },
 
-  progRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  progLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.semiBold },
-  progPct: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: Fonts.extraBold },
-  progTrack: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 99, height: 7, overflow: 'hidden', marginBottom: 10 },
-  progFill: { height: 7, borderRadius: 99, backgroundColor: '#c4b5fd' },
-  progBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.bold },
-  reportLink: { fontSize: 12, color: '#c4b5fd', fontFamily: Fonts.bold },
+    bottom: { paddingHorizontal: 20, paddingTop: 20 },
+    section: { marginBottom: 20 },
+    sectionTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 12 },
+    sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    seeAll: { fontSize: 13, color: colors.accent, fontFamily: Fonts.bold },
 
-  /* ── BODY ── */
-  bottom: { paddingHorizontal: 20, paddingTop: 20 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 12 },
-  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  seeAll: { fontSize: 13, color: '#6b4fa8', fontFamily: Fonts.bold },
+    insightCard: {
+      backgroundColor: colors.card, borderRadius: 22, padding: 18, marginBottom: 20,
+      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: colors.shadowOpacity, shadowRadius: 16, elevation: 4,
+      borderWidth: 1, borderColor: colors.cardBorder,
+    },
+    insightTop: { flexDirection: 'row', gap: 14, marginBottom: 14 },
+    insightEmoji: { fontSize: 28, marginTop: 2 },
+    insightTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 5, lineHeight: 20 },
+    insightBody: { fontSize: 13, fontFamily: Fonts.regular, color: colors.textSecondary, lineHeight: 20 },
+    insightFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    insightBadge: { backgroundColor: colors.accentBg, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
+    insightBadgeText: { fontSize: 10, fontFamily: Fonts.semiBold, color: colors.accent },
+    insightCta: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
+    insightDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: -10, marginBottom: 12 },
+    insightDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.divider },
+    insightDotActive: { width: 18, borderRadius: 3 },
 
-  insightCard: {
-    backgroundColor: '#fff', borderRadius: 22, padding: 18, marginBottom: 20,
-    shadowColor: '#1a0a3c', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08, shadowRadius: 16, elevation: 4,
-    borderWidth: 1, borderColor: '#ede9fb',
-  },
-  insightTop: { flexDirection: 'row', gap: 14, marginBottom: 14 },
-  insightEmoji: { fontSize: 28, marginTop: 2 },
-  insightTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 5, lineHeight: 20 },
-  insightBody: { fontSize: 13, fontFamily: Fonts.regular, color: '#6b5fa0', lineHeight: 20 },
-  insightFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  insightBadge: { backgroundColor: '#f0edfb', borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-  insightBadgeText: { fontSize: 10, fontFamily: Fonts.semiBold, color: '#6b4fa8' },
-  insightCta: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b4fa8' },
+    dayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginLeft: 2 },
+    dayLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted, marginBottom: 8 },
+    dayTotal: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.accent },
 
-  dayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginLeft: 2 },
-  dayLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#9b8cc4', marginBottom: 8 },
-  dayTotal: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
+    txCard: { backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: colors.shadowOpacity, shadowRadius: 12, elevation: 3 },
+    txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+    txBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+    txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    txCat: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 2 },
+    txMeta: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.medium },
+    txAmt: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.accent },
 
-  txCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', shadowColor: '#1a0a3c', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  txBorder: { borderBottomWidth: 1, borderBottomColor: '#f5f3ff' },
-  txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  txCat: { fontSize: 13, fontFamily: Fonts.bold, color: '#3b1f6e', marginBottom: 2 },
-  txMeta: { fontSize: 11, color: '#c4b5fd', fontFamily: Fonts.medium },
-  txAmt: { fontSize: 12, fontFamily: Fonts.extraBold, color: '#6b4fa8' },
+    emptyWrap: { alignItems: 'center', padding: 28 },
+    emptyText: { fontSize: 14, fontFamily: Fonts.bold, color: colors.textSecondary, marginBottom: 14 },
+    emptyBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
+    emptyBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
 
-  emptyWrap: { alignItems: 'center', padding: 28 },
-  emptyText: { fontSize: 14, fontFamily: Fonts.bold, color: '#c4b5fd', marginBottom: 14 },
-  emptyBtn: { backgroundColor: '#6b4fa8', borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
-  emptyBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
-
-/* ── FAB ── */
-  fabWrap: {
-    position: 'absolute',
-    bottom: 32, right: 24,
-  },
-  fab: {
-    width: 58, height: 58,
-    borderRadius: 29,
-    backgroundColor: '#6b4fa8',
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#3b1f6e',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35, shadowRadius: 16, elevation: 12,
-  },
-  fabText: { fontSize: 30, color: '#fff', fontFamily: Fonts.regular, lineHeight: 34, marginTop: -2 },
-});
+    fabWrap: { position: 'absolute', bottom: 32, right: 24 },
+    fab: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 12 },
+    fabText: { fontSize: 30, color: '#fff', fontFamily: Fonts.regular, lineHeight: 34, marginTop: -2 },
+  });
+}

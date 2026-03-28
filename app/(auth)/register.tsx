@@ -8,8 +8,10 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
 import AppIcon from '../../assets/app-icon.svg';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function RegisterScreen() {
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -37,6 +39,8 @@ export default function RegisterScreen() {
       ]);
     }
   };
+
+  const styles = makeStyles(colors);
 
   return (
     <View style={styles.root}>
@@ -73,7 +77,7 @@ export default function RegisterScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -87,7 +91,7 @@ export default function RegisterScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
             />
           </View>
@@ -102,7 +106,7 @@ export default function RegisterScreen() {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="••••••••"
-              placeholderTextColor="#c4b5fd"
+              placeholderTextColor={colors.textMuted}
               secureTextEntry
             />
             {confirmPassword.length > 0 && confirmPassword !== password && (
@@ -136,17 +140,17 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#eeeaf8' },
+const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   bgShape: {
     position: 'absolute', top: -100, right: -100,
     width: 350, height: 350, borderRadius: 175,
-    backgroundColor: 'rgba(107,79,168,0.12)',
+    backgroundColor: colors.orb1,
   },
   bgShape2: {
     position: 'absolute', bottom: -80, left: -80,
     width: 250, height: 250, borderRadius: 125,
-    backgroundColor: 'rgba(59,31,110,0.08)',
+    backgroundColor: colors.orb2,
   },
   scroll: {
     flexGrow: 1, justifyContent: 'center',
@@ -156,56 +160,57 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', marginBottom: 40 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 24,
-    backgroundColor: '#6b4fa8', alignItems: 'center',
+    backgroundColor: colors.accent, alignItems: 'center',
     justifyContent: 'center', marginBottom: 16,
-    shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 8 },
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35, shadowRadius: 16, elevation: 10,
   },
   appName: {
-    fontSize: 34, fontFamily: Fonts.extraBold, color: '#3b1f6e',
+    fontSize: 34, fontFamily: Fonts.extraBold, color: colors.textPrimary,
     letterSpacing: -1.5, marginBottom: 8,
   },
   tagline: {
-    fontSize: 15, color: '#9b8cc4', fontFamily: Fonts.medium,
+    fontSize: 15, color: colors.textMuted, fontFamily: Fonts.medium,
     textAlign: 'center', lineHeight: 22,
   },
 
   formCard: {
-    backgroundColor: '#fff', borderRadius: 28, padding: 24,
-    shadowColor: '#3b1f6e', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1, shadowRadius: 24, elevation: 10,
+    backgroundColor: colors.card, borderRadius: 28, padding: 24,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15, shadowRadius: 24, elevation: 10,
   },
-  formTitle: { fontSize: 22, fontFamily: Fonts.extraBold, color: '#3b1f6e', marginBottom: 4 },
-  formSub: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium, marginBottom: 24 },
+  formTitle: { fontSize: 22, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 4 },
+  formSub: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium, marginBottom: 24 },
 
   inputWrap: { marginBottom: 16 },
-  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: '#6b4fa8', marginBottom: 6 },
+  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent, marginBottom: 6 },
   input: {
-    backgroundColor: '#f5f3ff', borderRadius: 14,
+    backgroundColor: colors.inputBg, borderRadius: 14,
     paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: 15, color: '#3b1f6e', fontFamily: Fonts.semiBold,
-    borderWidth: 2, borderColor: '#e4dff5',
+    fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.semiBold,
+    borderWidth: 1, borderColor: colors.inputBorder,
   },
 
-  inputError: { borderColor: '#ef4444' },
-  errorText: { fontSize: 11, color: '#ef4444', fontFamily: Fonts.medium, marginTop: 4 },
+  inputError: { borderColor: colors.danger },
+  errorText: { fontSize: 11, color: colors.danger, fontFamily: Fonts.medium, marginTop: 4 },
 
   submitBtn: {
-    backgroundColor: '#6b4fa8', borderRadius: 16,
+    backgroundColor: colors.accent, borderRadius: 16,
     paddingVertical: 16, alignItems: 'center',
     marginTop: 8, marginBottom: 16,
-    shadowColor: '#6b4fa8', shadowOffset: { width: 0, height: 6 },
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: '#fff', fontSize: 16, fontFamily: Fonts.extraBold },
+  submitText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
 
   switchBtn: { alignItems: 'center' },
-  switchText: { fontSize: 13, color: '#c4b5fd', fontFamily: Fonts.medium },
-  switchLink: { color: '#6b4fa8', fontFamily: Fonts.extraBold },
+  switchText: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium },
+  switchLink: { color: colors.accent, fontFamily: Fonts.extraBold },
 
   footer: {
     textAlign: 'center', fontSize: 12,
-    color: '#c4b5fd', fontFamily: Fonts.semiBold, marginTop: 24,
+    color: colors.textMuted, fontFamily: Fonts.semiBold, marginTop: 24,
   },
 });
