@@ -92,7 +92,8 @@ export function useProfile(userId: string | undefined) {
   const checkAndUpdateStreak = useCallback(async () => {
     if (!userId || !profile) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const lastActive = profile.last_active_date;
 
     // Đã check hôm nay rồi → bỏ qua
