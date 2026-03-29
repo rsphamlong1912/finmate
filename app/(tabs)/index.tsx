@@ -46,11 +46,11 @@ export default function DashboardScreen() {
   }, [timerDone, authLoading, profileLoading, expensesLoading, categoriesLoading]);
 
   useEffect(() => {
-    if (!showLoader && newStreakDay) {
+    if (!showLoader && newStreakDay && profile?.streak_enabled) {
       const t = setTimeout(() => setShowCelebration(true), 500);
       return () => clearTimeout(t);
     }
-  }, [showLoader, newStreakDay]);
+  }, [showLoader, newStreakDay, profile?.streak_enabled]);
 
   const [insightIndex, setInsightIndex] = useState(0);
   const insightFade = useRef(new Animated.Value(1)).current;

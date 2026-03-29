@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useProfile }  from './ProfileContext';
 import { useExpenses } from './ExpensesContext';
@@ -13,11 +13,12 @@ import {
 type AchievementsContextType = {
   stats:              AchievementStats;
   unlockedIds:        Set<string>;
+  earnedIds:          Set<string>;
   totalXP:            number;
   level:              ReturnType<typeof getLevel>;
   levelProgress:      number;
-  newlyUnlocked:      AchievementDef | null;
-  clearNewlyUnlocked: () => void;
+  currentToast:       AchievementDef | null;
+  dismissToast:       () => void;
 };
 
 const AchievementsContext = createContext<AchievementsContextType | null>(null);
@@ -28,18 +29,19 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
   const { expenses } = useExpenses();
   const { goals }    = useGoals();
 
-  const [knownUnlocked, setKnownUnlocked] = useState<Set<string>>(new Set());
-  const [newlyUnlocked, setNewlyUnlocked] = useState<AchievementDef | null>(null);
-  const [dbLoaded,      setDbLoaded]      = useState(false);
+  const [knownUnlocked,   setKnownUnlocked]   = useState<Set<string>>(new Set());
+  const [dbLoaded,        setDbLoaded]        = useState(false);
+  const [toastQueue,      setToastQueue]      = useState<AchievementDef[]>([]);
 
   const CACHE_KEY = `achievements_unlocked_${user?.id}`;
 
-  // Load từ Supabase (source of truth), fallback về AsyncStorage cache
+  // Load từ Supabase, fallback AsyncStorage
   useEffect(() => {
     if (!user?.id) return;
+    setDbLoaded(false);
+    setKnownUnlocked(new Set());
 
     const loadFromDB = async () => {
-      // Thử load từ DB trước
       const { data, error } = await supabase
         .from('user_achievements')
         .select('achievement_id')
@@ -50,7 +52,6 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
         setKnownUnlocked(ids);
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify([...ids]));
       } else {
-        // Fallback: load từ AsyncStorage cache
         const cached = await AsyncStorage.getItem(CACHE_KEY);
         if (cached) setKnownUnlocked(new Set(JSON.parse(cached)));
       }
@@ -66,49 +67,52 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
     doneGoalsCount: goals.filter(g => g.saved_amount >= g.target_amount).length,
   };
 
-  // Tính toán thành tích đã mở khóa từ dữ liệu thực
-  const unlockedIds = new Set(
+  const unlockedIds = useMemo(() => new Set(
     ACHIEVEMENTS.filter(a => a.getValue(stats) >= a.threshold).map(a => a.id)
+  ), [stats.streakCount, stats.txCount, stats.doneGoalsCount]);
+
+  const unlockedKey = [...unlockedIds].sort().join(',');
+
+  // earnedIds = union DB + current data (cho display)
+  const earnedIds = useMemo(
+    () => new Set([...knownUnlocked, ...unlockedIds]),
+    [knownUnlocked, unlockedIds]
   );
 
   const totalXP = ACHIEVEMENTS
-    .filter(a => unlockedIds.has(a.id))
+    .filter(a => earnedIds.has(a.id))
     .reduce((sum, a) => sum + a.xp, 0);
 
   const level         = getLevel(totalXP);
   const levelProgress = getLevelProgress(totalXP);
 
-  // Detect thành tích mới → lưu Supabase + AsyncStorage
+  // Sync achievements mới vào DB
   useEffect(() => {
-    if (!user?.id || !dbLoaded) return; // chờ DB load xong mới so sánh
+    if (!user?.id || !dbLoaded) return;
 
-    const newIds = [...unlockedIds].filter(id => !knownUnlocked.has(id));
-    if (newIds.length === 0) return;
+    const toSave = [...unlockedIds].filter(id => !knownUnlocked.has(id));
+    if (toSave.length === 0) return;
 
-    // Hiện modal cho thành tích đầu tiên mới mở khóa
-    const first = ACHIEVEMENTS.find(a => a.id === newIds[0]) ?? null;
-    setNewlyUnlocked(first);
-
-    const merged = new Set([...knownUnlocked, ...unlockedIds]);
-    setKnownUnlocked(merged);
-
-    // Lưu vào Supabase
-    const rows = newIds.map(achievement_id => ({ user_id: user.id, achievement_id }));
+    const rows = toSave.map(achievement_id => ({ user_id: user.id, achievement_id }));
     supabase.from('user_achievements').insert(rows).then(({ error }) => {
       if (error) console.warn('Failed to save achievements to DB:', error.message);
     });
-
-    // Cập nhật AsyncStorage cache
+    const merged = new Set([...knownUnlocked, ...toSave]);
+    setKnownUnlocked(merged);
     AsyncStorage.setItem(CACHE_KEY, JSON.stringify([...merged]));
 
-  }, [unlockedIds.size, dbLoaded]);
+    // Queue toast notifications for newly unlocked achievements
+    const newDefs = toSave.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean) as AchievementDef[];
+    if (newDefs.length > 0) setToastQueue(q => [...q, ...newDefs]);
+  }, [unlockedKey, dbLoaded]);
 
-  const clearNewlyUnlocked = () => setNewlyUnlocked(null);
+  const currentToast = toastQueue[0] ?? null;
+  const dismissToast = () => setToastQueue(q => q.slice(1));
 
   return (
     <AchievementsContext.Provider value={{
-      stats, unlockedIds, totalXP, level, levelProgress,
-      newlyUnlocked, clearNewlyUnlocked,
+      stats, unlockedIds, earnedIds, totalXP, level, levelProgress,
+      currentToast, dismissToast,
     }}>
       {children}
     </AchievementsContext.Provider>

@@ -185,14 +185,14 @@ function AchievementCard({ a, current, unlocked, colors }: { a: AchievementDef; 
 export default function AchievementsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { stats, unlockedIds, totalXP, level, levelProgress } = useAchievements();
+  const { stats, earnedIds, totalXP, level, levelProgress } = useAchievements();
   const [activeTab, setActiveTab] = useState<AchievementCategory | 'all'>('all');
 
   const visible = activeTab === 'all'
     ? ACHIEVEMENTS
     : ACHIEVEMENTS.filter(a => a.category === activeTab);
 
-  const unlockedCount = unlockedIds.size;
+  const unlockedCount = earnedIds.size;
 
   const styles = makeStyles(colors);
 
@@ -241,7 +241,7 @@ export default function AchievementsScreen() {
             key={a.id}
             a={a}
             current={a.getValue(stats)}
-            unlocked={unlockedIds.has(a.id)}
+            unlocked={earnedIds.has(a.id)}
             colors={colors}
           />
         ))}

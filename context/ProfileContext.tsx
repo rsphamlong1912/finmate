@@ -181,6 +181,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfile(prev => prev ? { ...prev, ...updated } : prev);
     await supabase.from('profiles').update(updated).eq('id', user.id);
     await fetchStreakDates();
+    setNewStreakDay(true);
   }, [user?.id, profile, fetchStreakDates]);
 
   const clearNewStreakDay = () => setNewStreakDay(false);

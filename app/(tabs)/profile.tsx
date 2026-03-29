@@ -30,7 +30,7 @@ export default function ProfileScreen() {
   const { totalThisMonth, expenses }                       = useExpenses();
   const { profile, updateBudget, updateDisplayName, updateSettings } = useProfile();
   const router                                             = useRouter();
-  const { totalXP, level, levelProgress, unlockedIds } = useAchievements();
+  const { totalXP, level, levelProgress, earnedIds } = useAchievements();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -117,7 +117,7 @@ export default function ProfileScreen() {
   const isCustomBudget = !BUDGET_OPTIONS.find(o => o.value === budget);
   const parsedCustom   = parseVND(customBudget);
 
-  const unlockedCount  = unlockedIds.size;
+  const unlockedCount  = earnedIds.size;
   // Show first 6 achievements as a preview in profile
   const previewAchievements = ACHIEVEMENTS.slice(0, 6);
 
@@ -207,7 +207,7 @@ export default function ProfileScreen() {
             <TouchableOpacity style={styles.achieveCard} onPress={() => router.push('/achievements')} activeOpacity={0.85}>
               <View style={styles.achieveGrid}>
                 {previewAchievements.map(a => {
-                  const unlocked = unlockedIds.has(a.id);
+                  const unlocked = earnedIds.has(a.id);
                   return (
                     <View key={a.id} style={styles.achieveBadgeWrap}>
                       <View style={[styles.achieveBadge, unlocked ? styles.achieveBadgeUnlocked : styles.achieveBadgeLocked]}>

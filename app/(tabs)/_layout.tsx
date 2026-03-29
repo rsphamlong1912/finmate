@@ -4,8 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
 import { useRef, useEffect } from 'react';
-import { useAchievements } from '../../context/AchievementsContext';
-import { AchievementUnlockModal } from '../../components/AchievementUnlockModal';
 import { useTheme } from '../../context/ThemeContext';
 
 function ChatTabButton({ onPress, onLongPress, accessibilityState }: any) {
@@ -56,8 +54,6 @@ function ChatTabButton({ onPress, onLongPress, accessibilityState }: any) {
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { session, loading } = useAuth();
-  const { newlyUnlocked, clearNewlyUnlocked } = useAchievements();
-
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/login" />;
 
@@ -177,8 +173,6 @@ export default function TabsLayout() {
   });
 
   return (
-    <>
-    <AchievementUnlockModal achievement={newlyUnlocked} onClose={clearNewlyUnlocked} />
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -231,7 +225,6 @@ export default function TabsLayout() {
       {/* Ẩn khỏi tab bar */}
       <Tabs.Screen name="transactions" options={{ href: null }} />
     </Tabs>
-    </>
   );
 }
 
