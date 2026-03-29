@@ -32,8 +32,7 @@ function RootNavigator() {
 
   useEffect(() => {
     _markIntroDone = () => setIntroDone(true);
-    // DEV: luôn hiện intro — đổi thành false để dùng thật
-    const DEV_ALWAYS_SHOW_INTRO = true;
+    const DEV_ALWAYS_SHOW_INTRO = false;
     if (DEV_ALWAYS_SHOW_INTRO) {
       setIntroDone(false);
     } else {

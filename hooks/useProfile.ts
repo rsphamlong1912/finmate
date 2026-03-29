@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
-const parseDateUTC = (dateStr: string) => {
-  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
-  return Date.UTC(y, m - 1, d);
-};
-
 export type Profile = {
   id: string;
   display_name: string | null;
@@ -97,8 +92,7 @@ export function useProfile(userId: string | undefined) {
   const checkAndUpdateStreak = useCallback(async () => {
     if (!userId || !profile) return;
 
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const today = new Date().toISOString().split('T')[0];
     const lastActive = profile.last_active_date;
 
     // Đã check hôm nay rồi → bỏ qua
@@ -120,10 +114,10 @@ export function useProfile(userId: string | undefined) {
     let streak = 0;
     if (streakDays && streakDays.length > 0) {
       const sortedDates = streakDays.map(s => s.date).sort().reverse();
-      let current = parseDateUTC(today);
+      let current = new Date(today);
       for (const dateStr of sortedDates) {
-        const d = parseDateUTC(dateStr);
-        const diff = Math.round((current - d) / 86400000);
+        const d = new Date(dateStr);
+        const diff = Math.round((current.getTime() - d.getTime()) / 86400000);
         if (diff === 0 || diff === 1) { streak++; current = d; }
         else break;
       }
