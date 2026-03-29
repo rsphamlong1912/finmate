@@ -13,7 +13,6 @@ import { GoalsProvider } from '../context/GoalsContext';
 import { CategoriesProvider } from '../context/CategoriesContext';
 import { AchievementsProvider } from '../context/AchievementsContext';
 import { ThemeProvider } from '../context/ThemeContext';
-import AchievementToast from '../components/AchievementToast';
 import { LightTheme } from '../constants/theme';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -137,7 +136,6 @@ export default function RootLayout() {
             <CategoriesProvider>
               <AchievementsProvider>
                 <RootNavigator />
-                <AchievementToast />
               </AchievementsProvider>
             </CategoriesProvider>
           </GoalsProvider>

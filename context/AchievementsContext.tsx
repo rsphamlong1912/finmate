@@ -103,7 +103,7 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
 
     // Queue toast notifications for newly unlocked achievements
     const newDefs = toSave.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean) as AchievementDef[];
-    if (newDefs.length > 0) setToastQueue(q => [...q, ...newDefs]);
+if (newDefs.length > 0) setToastQueue(q => [...q, ...newDefs]);
   }, [unlockedKey, dbLoaded]);
 
   const currentToast = toastQueue[0] ?? null;

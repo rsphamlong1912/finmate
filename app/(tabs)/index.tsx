@@ -16,6 +16,8 @@ import { Fonts } from '../../constants/fonts';
 import { StreakCalendar } from '../../components/StreakCalendar';
 import { CoinLoader } from '../../components/CoinLoader';
 import { StreakCelebrationModal } from '../../components/StreakCelebrationModal';
+import { AchievementUnlockModal } from '../../components/AchievementUnlockModal';
+import { useAchievements } from '../../context/AchievementsContext';
 import { useTheme } from '../../context/ThemeContext';
 
 
@@ -27,6 +29,7 @@ export default function DashboardScreen() {
   const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading, newStreakDay, clearNewStreakDay } = useProfile();
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji, loading: categoriesLoading } = useCategories();
   const { goals } = useGoals();
+  const { currentToast, dismissToast } = useAchievements();
   const router = useRouter();
 
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -513,6 +516,13 @@ export default function DashboardScreen() {
 
       {/* COIN LOADER */}
       {showLoader && <CoinLoader />}
+
+      {/* ACHIEVEMENT UNLOCK */}
+      <AchievementUnlockModal
+        visible={!!currentToast}
+        achievement={currentToast}
+        onClose={dismissToast}
+      />
 
       {/* STREAK CELEBRATION */}
       <StreakCelebrationModal
