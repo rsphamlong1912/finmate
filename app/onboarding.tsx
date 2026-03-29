@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
             <Text style={styles.mainSub}>Để app gọi tên bạn{'\n'}thân thiện hơn</Text>
           </View>
           <View style={styles.body}>
-            <Dots total={3} current={1} colors={colors} />
+            <Dots total={3} current={0} colors={colors} />
             <Text style={styles.inputLabel}>Tên của bạn</Text>
             <TextInput
               style={styles.input}
@@ -108,7 +108,7 @@ export default function OnboardingScreen() {
             )}
           </View>
           <View style={styles.body}>
-            <Dots total={3} current={2} colors={colors} />
+            <Dots total={3} current={1} colors={colors} />
             <Text style={styles.quickLabel}>Gợi ý nhanh</Text>
             <ScrollView
               horizontal

@@ -6,7 +6,7 @@
     "scheme": "finmate",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#080813",
     "splash": {
       "image": "./assets/my-splash.png",
