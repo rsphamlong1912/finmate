@@ -9,6 +9,7 @@ import { useProfile } from '../../context/ProfileContext';
 import { formatVNDShort, formatVND } from '../../lib/vnd';
 import { useCategories } from '../../context/CategoriesContext';
 import { useTheme } from '../../context/ThemeContext';
+import { ExpenseCalendar } from '../../components/ExpenseCalendarModal';
 
 const { width } = Dimensions.get('window');
 const FILTERS = ['Ngày', 'Tuần', 'Tháng', 'Tùy chỉnh'];
@@ -98,6 +99,31 @@ function WeekCompareCard({ expenses, total, styles }: { expenses: any[]; total: 
   );
 }
 
+/* ── Pie chart danh mục — dùng chung 4 tab ── */
+function PieCategoryChart({ data, total, title, styles }: { data: any[]; total: number; title: string; styles: any }) {
+  if (data.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.chartCard}>
+        <View style={styles.pieWrap}>
+          <VictoryPie data={data} width={240} height={240} padding={30} colorScale={data.map((d: any) => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => total > 0 && (datum.y / total) >= 0.05 ? `${Math.round((datum.y / total) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#ffffff', fontWeight: '700' } }} animate={false} />
+          <View style={styles.pieLegend}>
+            {data.map((d: any) => (
+              <View key={d.category} style={styles.legendRow}>
+                <View style={[styles.legendDot, { backgroundColor: d.color }]} />
+                <Text style={styles.legendName}>{d.x}</Text>
+                <Text style={styles.legendPct}>{total > 0 ? Math.round((d.y / total) * 100) : 0}%</Text>
+                <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function StatsScreen() {
   const { colors } = useTheme();
   const { expenses, loading: expensesLoading } = useExpenses();
@@ -117,11 +143,9 @@ export default function StatsScreen() {
   }, [timerDone, profileLoading, expensesLoading]);
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Ngày');
-  const [showDayDetail, setShowDayDetail] = useState(false);
-  const [showCustomDetail, setShowCustomDetail] = useState(false);
+  const [showTxDetail, setShowTxDetail] = useState(false);
 
-  const dayDetailAnim = useRef(new Animated.Value(0)).current;
-  const customDetailAnim = useRef(new Animated.Value(0)).current;
+  const txDetailAnim = useRef(new Animated.Value(0)).current;
   const rangeModalAnim = useRef(new Animated.Value(0)).current;
   const dayPickerAnim = useRef(new Animated.Value(0)).current;
 
@@ -139,8 +163,7 @@ export default function StatsScreen() {
   const [selectedDay, setSelectedDay] = useState(() => { const d = new Date(); d.setHours(0,0,0,0); return d; });
   const [showDayPicker, setShowDayPicker] = useState(false);
 
-  useEffect(() => { if (showDayDetail) fadeIn(dayDetailAnim); }, [showDayDetail]);
-  useEffect(() => { if (showCustomDetail) fadeIn(customDetailAnim); }, [showCustomDetail]);
+  useEffect(() => { if (showTxDetail) fadeIn(txDetailAnim); }, [showTxDetail]);
   useEffect(() => { if (showRangeModal) fadeIn(rangeModalAnim); }, [showRangeModal]);
   useEffect(() => { if (showDayPicker) fadeIn(dayPickerAnim); }, [showDayPicker]);
 
@@ -326,7 +349,7 @@ export default function StatsScreen() {
                 <View style={[styles.dayFill, { width: `${Math.min(periodBudget > 0 ? (total / periodBudget) * 100 : 0, 100)}%` as any, backgroundColor: total > periodBudget ? '#ef4444' : '#818cf8' }]} />
               </View>
               <TouchableOpacity
-                onPress={() => filtered.length > 0 && setShowDayDetail(true)}
+                onPress={() => filtered.length > 0 && setShowTxDetail(true)}
                 style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
                 activeOpacity={0.7}
               >
@@ -335,29 +358,11 @@ export default function StatsScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            {toLocalDateStr(selectedDay) === todayStr && total > 0 && (
+            {total > 0 && (
               <DayCompareCard expenses={expenses} total={total} selectedDay={selectedDay} todayStr={todayStr} styles={styles} />
             )}
-            {pieData.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Tiêu vào đâu hôm nay?' : `Tiêu vào đâu ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}?`}</Text>
-                <View style={styles.chartCard}>
-                  <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#ffffff', fontWeight: '700' } }} animate={false} />
-                    <View style={styles.pieLegend}>
-                      {pieData.map(d => (
-                        <View key={d.category} style={styles.legendRow}>
-                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName}>{d.x}</Text>
-                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
-                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            ) : (
+            <PieCategoryChart data={pieData} total={pieTotal} title={toLocalDateStr(selectedDay) === todayStr ? 'Tiêu vào đâu hôm nay?' : `Tiêu vào đâu ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}?`} styles={styles} />
+            {pieData.length === 0 && (
               <View style={styles.dayEmpty}>
                 <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
                 <Text style={styles.dayEmptyTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay chưa có giao dịch' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1} không có giao dịch`}</Text>
@@ -401,26 +406,8 @@ export default function StatsScreen() {
                 )}
               </View>
             </View>
-            {pieData.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Danh mục chiếm nhiều nhất</Text>
-                <View style={styles.chartCard}>
-                  <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#ffffff', fontWeight: '700' } }} animate={false} />
-                    <View style={styles.pieLegend}>
-                      {pieData.map(d => (
-                        <View key={d.category} style={styles.legendRow}>
-                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName}>{d.x}</Text>
-                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
-                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            ) : (
+            <PieCategoryChart data={pieData} total={pieTotal} title="Danh mục chiếm nhiều nhất" styles={styles} />
+            {pieData.length === 0 && (
               <View style={styles.empty}><Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text><Text style={styles.emptyTitle}>Chưa có dữ liệu</Text><Text style={styles.emptySub}>Thêm chi tiêu để xem thống kê</Text></View>
             )}
             <View style={{ height: 100 }} />
@@ -445,8 +432,10 @@ export default function StatsScreen() {
                 </View>
                 <View style={styles.monthScoreItemDivider} />
                 <View style={styles.monthScoreItem}>
-                  <Text style={styles.monthScoreItemVal}>{formatVNDShort(saved)}</Text>
-                  <Text style={styles.monthScoreItemLbl}>còn lại</Text>
+                  <Text style={[styles.monthScoreItemVal, total > budget && { color: '#ef4444' }]}>
+                    {total > budget ? `-${formatVNDShort(total - budget)}` : formatVNDShort(saved)}
+                  </Text>
+                  <Text style={styles.monthScoreItemLbl}>{total > budget ? 'vượt budget' : 'còn lại'}</Text>
                 </View>
                 <View style={styles.monthScoreItemDivider} />
                 <View style={styles.monthScoreItem}>
@@ -456,45 +445,11 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            {/* 2. Line chart xu hướng + slope insight */}
+            {/* 2. Calendar chi tiêu theo ngày */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Xu hướng tích lũy</Text>
-              {slopeInsight && (
-                <View style={[styles.insightBadge, { backgroundColor: slopeInsight.bg }]}>
-                  <Text style={[styles.insightText, { color: slopeInsight.color }]}>{slopeInsight.text}</Text>
-                </View>
-              )}
+              <Text style={styles.sectionTitle}>Chi tiêu theo ngày</Text>
               <View style={styles.chartCard}>
-                {lineData.length < 2 ? (
-                  <View style={styles.emptyChart}><Text style={styles.emptyText}>Cần ít nhất 2 ngày dữ liệu</Text></View>
-                ) : (
-                  <VictoryChart
-                    width={width - 64} height={200}
-                    theme={VictoryTheme.material}
-                    padding={{ top: 20, bottom: 36, left: 56, right: 24 }}
-                    domain={{ y: [0, Math.max(budgetLine * 1.1, (lineData[lineData.length - 1]?.y ?? 0) * 1.1)] }}
-                  >
-                    <VictoryAxis tickCount={6} style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
-                    <VictoryAxis dependentAxis tickFormat={t => `${t}tr`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
-                    {/* Budget reference line */}
-                    <VictoryLine
-                      data={[{ x: 1, y: budgetLine }, { x: now.getDate(), y: budgetLine }]}
-                      style={{ data: { stroke: '#ef4444', strokeWidth: 1.5, strokeDasharray: '6 4', opacity: 0.5 } }}
-                    />
-                    {/* Area fill */}
-                    <VictoryArea
-                      data={lineData}
-                      style={{ data: { fill: '#818cf8', fillOpacity: 0.1, stroke: '#818cf8', strokeWidth: 2.5 } }}
-                      animate={false}
-                    />
-                  </VictoryChart>
-                )}
-                {lineData.length >= 2 && (
-                  <View style={styles.budgetLineLabel}>
-                    <View style={styles.budgetLineDash} />
-                    <Text style={styles.budgetLineLabelText}>Ngân sách {formatVNDShort(budget)}</Text>
-                  </View>
-                )}
+                <ExpenseCalendar />
               </View>
             </View>
 
@@ -520,27 +475,49 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            {/* 4. Pie chart danh mục */}
-            {pieData.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tiền đi đâu tháng này?</Text>
-                <View style={styles.chartCard}>
-                  <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#ffffff', fontWeight: '700' } }} animate={false} />
-                    <View style={styles.pieLegend}>
-                      {pieData.map(d => (
-                        <View key={d.category} style={styles.legendRow}>
-                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName}>{d.x}</Text>
-                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
-                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
+            {/* 4. Line chart xu hướng + slope insight */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Xu hướng tích lũy</Text>
+              {slopeInsight && (
+                <View style={[styles.insightBadge, { backgroundColor: slopeInsight.bg }]}>
+                  <Text style={[styles.insightText, { color: slopeInsight.color }]}>{slopeInsight.text}</Text>
                 </View>
+              )}
+              <View style={styles.chartCard}>
+                {lineData.length < 2 ? (
+                  <View style={styles.emptyChart}><Text style={styles.emptyText}>Cần ít nhất 2 ngày dữ liệu</Text></View>
+                ) : (
+                  <VictoryChart
+                    width={width - 64} height={200}
+                    theme={VictoryTheme.material}
+                    padding={{ top: 20, bottom: 36, left: 56, right: 24 }}
+                    domain={{ y: [0, Math.max(budgetLine * 1.1, (lineData[lineData.length - 1]?.y ?? 0) * 1.1)] }}
+                  >
+                    <VictoryAxis tickCount={6} style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
+                    <VictoryAxis dependentAxis tickFormat={t => `${t}tr`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
+                    <VictoryLine
+                      data={[{ x: 1, y: budgetLine }, { x: now.getDate(), y: budgetLine }]}
+                      style={{ data: { stroke: '#ef4444', strokeWidth: 1.5, strokeDasharray: '6 4', opacity: 0.5 } }}
+                    />
+                    <VictoryArea
+                      data={lineData}
+                      style={{ data: { fill: '#818cf8', fillOpacity: 0.1, stroke: '#818cf8', strokeWidth: 2.5 } }}
+                      animate={false}
+                    />
+                  </VictoryChart>
+                )}
+                {lineData.length >= 2 && (
+                  <View style={styles.budgetLineLabel}>
+                    <View style={styles.budgetLineDash} />
+                    <Text style={styles.budgetLineLabelText}>Ngân sách {formatVNDShort(budget)}</Text>
+                  </View>
+                )}
               </View>
-            ) : (
+            </View>
+
+            {/* 5. Pie chart danh mục */}
+            <PieCategoryChart data={pieData} total={pieTotal} title="Tiền đi đâu tháng này?" styles={styles} />
+            {pieData.length === 0 && (
               <View style={styles.empty}><Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text><Text style={styles.emptyTitle}>Chưa có dữ liệu</Text><Text style={styles.emptySub}>Thêm chi tiêu để xem thống kê</Text></View>
             )}
 
@@ -561,7 +538,7 @@ export default function StatsScreen() {
               </View>
               <Text style={styles.dayAmt}>{formatVND(total)}</Text>
               <TouchableOpacity
-                onPress={() => filtered.length > 0 && setShowCustomDetail(true)}
+                onPress={() => filtered.length > 0 && setShowTxDetail(true)}
                 style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
                 activeOpacity={0.7}
               >
@@ -604,26 +581,8 @@ export default function StatsScreen() {
             )}
 
             {/* Danh mục */}
-            {pieData.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Tiêu vào đâu?</Text>
-                <View style={styles.chartCard}>
-                  <View style={styles.pieWrap}>
-                    <VictoryPie data={pieData} width={240} height={240} padding={30} colorScale={pieData.map(d => d.color)} padAngle={2} labelRadius={65} labels={({ datum }) => pieTotal > 0 && (datum.y / pieTotal) >= 0.05 ? `${Math.round((datum.y / pieTotal) * 100)}%` : ''} style={{ labels: { fontSize: 12, fill: '#ffffff', fontWeight: '700' } }} animate={false} />
-                    <View style={styles.pieLegend}>
-                      {pieData.map(d => (
-                        <View key={d.category} style={styles.legendRow}>
-                          <View style={[styles.legendDot, { backgroundColor: d.color }]} />
-                          <Text style={styles.legendName}>{d.x}</Text>
-                          <Text style={styles.legendPct}>{pieTotal > 0 ? Math.round((d.y / pieTotal) * 100) : 0}%</Text>
-                          <Text style={styles.legendAmt}>{formatVNDShort(d.y)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                </View>
-              </View>
-            ) : (
+            <PieCategoryChart data={pieData} total={pieTotal} title="Tiêu vào đâu?" styles={styles} />
+            {pieData.length === 0 && (
               <View style={styles.dayEmpty}>
                 <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
                 <Text style={styles.dayEmptyTitle}>Không có giao dịch</Text>
@@ -637,52 +596,19 @@ export default function StatsScreen() {
 
       </ScrollView>
 
-      {/* ── Modal chi tiết giao dịch hôm nay ── */}
-      <Modal visible={showDayDetail} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowDayDetail(false)}>
-        <Animated.View style={[styles.modalContainer, { opacity: dayDetailAnim }]}>
-          <Pressable style={styles.modalOverlay} onPress={() => setShowDayDetail(false)} />
-          <Animated.View style={[styles.modalSheet, { opacity: dayDetailAnim, transform: [{ translateY: dayDetailAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
-          <View style={styles.modalHandle} />
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Giao dịch hôm nay' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth() + 1}/${selectedDay.getFullYear()}`}</Text>
-            <TouchableOpacity onPress={() => setShowDayDetail(false)}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-            {[...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(e => {
-              const catLabel = getCategoryLabel(e.category);
-              const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-              const color = getCategoryColor(e.category);
-              return (
-                <View key={e.id} style={styles.modalItem}>
-                  <View style={[styles.modalItemIcon, { backgroundColor: color + '1a' }]}>
-                    <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || catLabel}</Text>
-                    <Text style={styles.modalItemCat}>{catLabel} · {time}</Text>
-                  </View>
-                  <Text style={[styles.modalItemAmt, { color }]}>-{formatVNDShort(e.amount)}</Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
-
-      {/* ── Modal chi tiết giao dịch tùy chỉnh ── */}
-      <Modal visible={showCustomDetail} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowCustomDetail(false)}>
-        <Animated.View style={[styles.modalContainer, { opacity: customDetailAnim }]}>
-          <Pressable style={styles.modalOverlay} onPress={() => setShowCustomDetail(false)} />
-          <Animated.View style={[styles.modalSheet, { opacity: customDetailAnim, transform: [{ translateY: customDetailAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
+      {/* ── Modal chi tiết giao dịch (dùng chung Ngày + Tùy chỉnh) ── */}
+      <Modal visible={showTxDetail} transparent animationType="none" presentationStyle="overFullScreen" onRequestClose={() => setShowTxDetail(false)}>
+        <Animated.View style={[styles.modalContainer, { opacity: txDetailAnim }]}>
+          <Pressable style={styles.modalOverlay} onPress={() => setShowTxDetail(false)} />
+          <Animated.View style={[styles.modalSheet, { opacity: txDetailAnim, transform: [{ translateY: txDetailAnim.interpolate({ inputRange: [0, 1], outputRange: [24, 0] }) }] }]}>
             <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {customStart.getDate()}/{customStart.getMonth()+1} — {customEnd.getDate()}/{customEnd.getMonth()+1}/{customEnd.getFullYear()}
+                {filter === 'Ngày'
+                  ? (toLocalDateStr(selectedDay) === todayStr ? 'Giao dịch hôm nay' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}/${selectedDay.getFullYear()}`)
+                  : `${customStart.getDate()}/${customStart.getMonth()+1} — ${customEnd.getDate()}/${customEnd.getMonth()+1}/${customEnd.getFullYear()}`}
               </Text>
-              <TouchableOpacity onPress={() => setShowCustomDetail(false)}>
+              <TouchableOpacity onPress={() => setShowTxDetail(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -690,7 +616,9 @@ export default function StatsScreen() {
               {[...filtered].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map(e => {
                 const catLabel = getCategoryLabel(e.category);
                 const d = new Date(e.created_at);
-                const dateStr = `${d.getDate()}/${d.getMonth()+1} · ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+                const timeStr = filter === 'Ngày'
+                  ? d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                  : `${d.getDate()}/${d.getMonth()+1} · ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
                 const color = getCategoryColor(e.category);
                 return (
                   <View key={e.id} style={styles.modalItem}>
@@ -699,7 +627,7 @@ export default function StatsScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.modalItemNote} numberOfLines={1}>{e.note || catLabel}</Text>
-                      <Text style={styles.modalItemCat}>{catLabel} · {dateStr}</Text>
+                      <Text style={styles.modalItemCat}>{catLabel} · {timeStr}</Text>
                     </View>
                     <Text style={[styles.modalItemAmt, { color }]}>-{formatVNDShort(e.amount)}</Text>
                   </View>
@@ -827,7 +755,7 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   filterTab: { flex: 1, backgroundColor: colors.inputBg, borderRadius: 10, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder },
   filterTabActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   filterTabText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
-  filterTabTextActive: { color: colors.textPrimary },
+  filterTabTextActive: { color: colors.accentText },
 
   /* ── NGÀY ── */
   dayBody: { backgroundColor: colors.bg, padding: 20 },
@@ -970,7 +898,7 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   dateModalSheet: { backgroundColor: colors.surface, borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
   dateModalTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 8 },
   dateModalBtn: { marginTop: 12, backgroundColor: colors.accent, borderRadius: 14, paddingHorizontal: 40, paddingVertical: 12 },
-  dateModalBtnText: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+  dateModalBtnText: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.accentText },
 
   presetRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
   presetChip: { backgroundColor: colors.accentBg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },

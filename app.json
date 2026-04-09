@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "vn.finmate.app"
+      "bundleIdentifier": "vn.finmate.app",
+      "usesAppleSignIn": false
     },
     "android": {
       "adaptiveIcon": {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal
+  TextInput, Alert, Modal, Platform
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
@@ -21,12 +21,12 @@ const CIRC = 2 * Math.PI * RING_R;
 
 function ProgressRing({ pct, done }: { pct: number; done: boolean }) {
   const offset = CIRC * (1 - Math.min(pct, 100) / 100);
-  const color = done ? '#34d399' : '#818cf8';
+  const color = done ? '#34d399' : '#3D6B35';
   return (
     <View style={{ width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute' }}>
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
-          stroke={done ? 'rgba(52,211,153,0.18)' : 'rgba(129,140,248,0.15)'} strokeWidth={RING_STROKE} fill="none" />
+          stroke={done ? 'rgba(52,211,153,0.18)' : 'rgba(61,107,53,0.15)'} strokeWidth={RING_STROKE} fill="none" />
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
           stroke={color} strokeWidth={RING_STROKE} fill="none"
           strokeDasharray={CIRC} strokeDashoffset={offset}
@@ -214,7 +214,7 @@ export default function GoalsScreen() {
     },
     tabPillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
     tabPillText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
-    tabPillTextActive: { color: colors.textPrimary },
+    tabPillTextActive: { color: colors.accentText },
 
     // List
     scroll: { flex: 1 },
@@ -244,12 +244,12 @@ export default function GoalsScreen() {
       width: 36, height: 36, borderRadius: 12,
       backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
     },
-    depositBtnText: { color: colors.textPrimary, fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
+    depositBtnText: { color: colors.accentText, fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
 
     // FAB
     fab: {
       position: 'absolute', bottom: 0, left: 0, right: 0,
-      paddingHorizontal: 20, paddingBottom: 18, paddingTop: 10,
+      paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 100 : 80, paddingTop: 10,
       backgroundColor: colors.bg,
     },
     fabBtn: {
@@ -258,7 +258,7 @@ export default function GoalsScreen() {
       shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.28, shadowRadius: 14, elevation: 8,
     },
-    fabText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+    fabText: { color: colors.accentText, fontSize: 16, fontFamily: Fonts.extraBold },
 
     // Empty
     emptyBox: { alignItems: 'center', paddingVertical: 64 },
@@ -266,7 +266,7 @@ export default function GoalsScreen() {
     emptyTitle: { fontSize: 18, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
     emptySub: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium, textAlign: 'center', marginBottom: 28 },
     emptyBtn: { backgroundColor: colors.accent, borderRadius: 16, paddingHorizontal: 32, paddingVertical: 14 },
-    emptyBtnText: { color: colors.textPrimary, fontSize: 15, fontFamily: Fonts.extraBold },
+    emptyBtnText: { color: colors.accentText, fontSize: 15, fontFamily: Fonts.extraBold },
 
     // Sheet (modal)
     sheet: { flex: 1, backgroundColor: colors.bg },
@@ -310,7 +310,7 @@ export default function GoalsScreen() {
     quickChip: { flex: 1, backgroundColor: colors.card, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.inputBorder },
     quickChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
     quickChipText: { fontSize: 15, color: colors.accent, fontFamily: Fonts.extraBold },
-    quickChipTextActive: { color: colors.textPrimary },
+    quickChipTextActive: { color: colors.accentText },
 
     // Delete
     deleteGoalBtn: { marginTop: 32, borderWidth: 1, borderColor: colors.dangerBorder, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
@@ -444,7 +444,7 @@ export default function GoalsScreen() {
             );
           })
         )}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 160 }} />
       </ScrollView>
 
       {/* ── FAB ── */}

@@ -58,7 +58,7 @@ export default function TransactionsScreen() {
     segmentItem: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
     segmentActive: { backgroundColor: colors.accent, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 }, shadowOpacity: colors.shadowOpacity, shadowRadius: 6, elevation: 3 },
     segmentText: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted },
-    segmentTextActive: { color: colors.textPrimary },
+    segmentTextActive: { color: colors.accentText },
 
     scroll: { flex: 1, paddingHorizontal: 20, backgroundColor: colors.bg },
     group: { marginBottom: 12, marginTop: 4 },
@@ -148,6 +148,7 @@ export default function TransactionsScreen() {
         </View>
       </View>
 
+
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {Object.keys(grouped).length === 0 ? (
           <View style={styles.empty}>
@@ -195,6 +196,7 @@ export default function TransactionsScreen() {
         <Text style={styles.hint}>Tap để sửa · Nhấn giữ để xóa</Text>
         <View style={{ height: 120 }} />
       </ScrollView>
+
     </View>
   );
 }

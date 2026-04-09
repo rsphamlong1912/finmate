@@ -306,7 +306,7 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
   },
   quickBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
   quickBtnText: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
-  quickBtnTextActive: { color: colors.textPrimary },
+  quickBtnTextActive: { color: colors.accentText },
 
   body: { flex: 1, backgroundColor: colors.bg, padding: 20 },
 
@@ -350,7 +350,7 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
     shadowOpacity: 0.3, shadowRadius: 14, elevation: 8,
   },
   saveBtnDisabled: { opacity: 0.45 },
-  saveBtnText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+  saveBtnText: { color: colors.accentText, fontSize: 16, fontFamily: Fonts.extraBold },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)' },

@@ -139,7 +139,10 @@ const makePathStyles = (colors: ReturnType<typeof import('../context/ThemeContex
 
 function AchievementCard({ a, current, unlocked, colors }: { a: AchievementDef; current: number; unlocked: boolean; colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors'] }) {
   const tier = TIER_CONFIG[a.tier];
-  const pct  = Math.min(current / a.threshold, 1);
+  // Nếu đã unlock thì luôn hiển thị progress = 100%, không dùng stats hiện tại
+  // (vì stats có thể thấp hơn threshold nếu streak bị reset sau khi đã đạt)
+  const displayCurrent = unlocked ? a.threshold : current;
+  const pct  = Math.min(displayCurrent / a.threshold, 1);
   const styles = makeStyles(colors);
 
   return (
@@ -171,7 +174,7 @@ function AchievementCard({ a, current, unlocked, colors }: { a: AchievementDef; 
         </View>
         <View style={styles.progressBottom}>
           <Text style={styles.progressLabel}>
-            {Math.min(current, a.threshold)}/{a.threshold}
+            {Math.min(displayCurrent, a.threshold)}/{a.threshold}
           </Text>
           <Text style={[styles.xpLabel, unlocked && styles.xpLabelEarned]}>
             {unlocked ? `✓ +${a.xp} XP` : `+${a.xp} XP`}

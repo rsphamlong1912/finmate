@@ -1,250 +1,155 @@
-import { Tabs, Redirect } from 'expo-router';
-import { View, Text, StyleSheet, Platform, TouchableOpacity, Animated } from 'react-native';
+import { Tabs, Redirect, useRouter } from 'expo-router';
+import { View, Text, TouchableOpacity, Platform, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
-import { useRef, useEffect } from 'react';
-import { useTheme } from '../../context/ThemeContext';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
-function ChatTabButton({ onPress, onLongPress, accessibilityState }: any) {
-  const { colors } = useTheme();
-  const focused = accessibilityState?.selected;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+const TAB_ITEMS: { name: string; icon: string; iconOutline: string; label: string }[] = [
+  { name: 'index', icon: 'home', iconOutline: 'home-outline', label: 'Home' },
+  { name: 'stats', icon: 'stats-chart', iconOutline: 'stats-chart-outline', label: 'Stats' },
+  { name: 'goals', icon: 'flag', iconOutline: 'flag-outline', label: 'Goal' },
+];
 
-  useEffect(() => {
-    if (focused) {
-      const pulse = Animated.loop(Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-      ]));
-      pulse.start();
-      return () => pulse.stop();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [focused]);
-
-  const handlePress = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.86, duration: 90, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, tension: 220, friction: 6 }),
-    ]).start();
-    onPress?.();
-  };
-
-  const chatTabWrap = { flex: 1, alignItems: 'center' as const, justifyContent: 'flex-end' as const, paddingBottom: Platform.OS === 'ios' ? 10 : 6, marginTop: -22 };
-  const chatGlowStyle = { position: 'absolute' as const, bottom: Platform.OS === 'ios' ? 26 : 22, width: 80, height: 80, borderRadius: 40, backgroundColor: colors.orb1 };
-  const chatTabBtnStyle = { width: 60, height: 60, borderRadius: 30, backgroundColor: focused ? '#6366f1' : colors.accent, alignItems: 'center' as const, justifyContent: 'center' as const, borderWidth: 3, borderColor: colors.surface, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: focused ? 0.7 : 0.5, shadowRadius: 14, elevation: 14, marginBottom: 4 };
-  const chatTabLabelStyle = { fontSize: 10, fontFamily: focused ? Fonts.extraBold : Fonts.semiBold, color: focused ? colors.accent : colors.textMuted, marginTop: 1 };
+function CustomTabBar({ state, navigation }: BottomTabBarProps) {
+  const router = useRouter();
 
   return (
-    <TouchableOpacity onPress={handlePress} onLongPress={onLongPress} style={chatTabWrap} activeOpacity={1}>
-      {focused && (
-        <Animated.View style={[chatGlowStyle, { transform: [{ scale: pulseAnim }] }]} />
-      )}
-      <Animated.View style={[chatTabBtnStyle, { transform: [{ scale: scaleAnim }] }]}>
-        <Ionicons name="sparkles" size={24} color="#fff" />
-      </Animated.View>
-      <Text style={chatTabLabelStyle}>Chat AI</Text>
-    </TouchableOpacity>
-  );
-}
+    <View style={styles.tabBarWrap}>
+      {/* Pill background */}
+      <BlurView intensity={72} tint="light" style={styles.pill}>
+        {TAB_ITEMS.map((tab, i) => {
+          const focused = state.index === i;
+          return (
+            <TouchableOpacity
+              key={tab.name}
+              style={styles.tabItem}
+              onPress={() => navigation.navigate(tab.name)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={(focused ? tab.icon : tab.iconOutline) as any}
+                size={24}
+                color={focused ? '#3D6B35' : 'rgba(26,26,46,0.35)'}
+              />
+              <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </BlurView>
 
-export default function TabsLayout() {
-  const { colors } = useTheme();
-  const { session, loading } = useAuth();
-  if (loading) return null;
-  if (!session) return <Redirect href="/(auth)/login" />;
-
-  const styles = StyleSheet.create({
-    tabBar: {
-      backgroundColor: 'transparent',
-      borderTopWidth: 0,
-      elevation: 0,
-      height: TAB_H,
-      paddingBottom: 0,
-      paddingTop: 0,
-      paddingHorizontal: 0,
-      overflow: 'visible',
-    },
-    tabBarBg: {
-      position: 'absolute',
-      left: 12, right: 12,
-      top: 4, height: BG_H,
-      backgroundColor: colors.surface,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: colors.shadowOpacity,
-      shadowRadius: 16,
-      elevation: 10,
-    },
-    tabBarItem: {
-      height: BG_H,
-      marginTop: 4,
-      paddingTop: 0,
-      paddingBottom: 0,
-    },
-    tabBarIcon: {
-      height: BG_H,
-      marginTop: 0,
-      marginBottom: 0,
-    },
-    tabItem: {
-      flex: 1,
-      width: '100%',
-      height: BG_H,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 3,
-      paddingHorizontal: 2,
-      paddingTop: 4,
-    },
-    topBar: {
-      position: 'absolute',
-      top: 10,
-      left: '15%', right: '15%',
-      height: 3,
-      borderRadius: 99,
-      backgroundColor: 'transparent',
-    },
-    topBarActive: {
-      backgroundColor: colors.accent,
-    },
-    chatTabWrap: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'flex-end',
-      paddingBottom: Platform.OS === 'ios' ? 10 : 6,
-      marginTop: -22,
-    },
-    chatTabBtn: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: colors.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 3,
-      borderColor: colors.surface,
-      shadowColor: colors.shadow,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.5,
-      shadowRadius: 14,
-      elevation: 14,
-      marginBottom: 4,
-    },
-    chatTabBtnActive: {
-      backgroundColor: '#6366f1',
-      shadowOpacity: 0.7,
-    },
-    chatGlow: {
-      position: 'absolute',
-      bottom: Platform.OS === 'ios' ? 26 : 22,
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: colors.orb1,
-    },
-    chatTabLabel: {
-      fontSize: 10,
-      fontFamily: Fonts.semiBold,
-      color: colors.textMuted,
-      marginTop: 1,
-    },
-    chatTabLabelActive: {
-      color: colors.accent,
-      fontFamily: Fonts.extraBold,
-    },
-    label: {
-      fontSize: 12,
-      fontFamily: Fonts.semiBold,
-      color: colors.textMuted,
-      textAlign: 'center',
-      width: '100%',
-    },
-    labelActive: {
-      color: colors.accent,
-      fontFamily: Fonts.extraBold,
-    },
-  });
-
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
-        tabBarItemStyle: styles.tabBarItem,
-        tabBarIconStyle: styles.tabBarIcon,
-        tabBarBackground: () => <View style={styles.tabBarBg} />,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={focused ? 'home' : 'home-outline'} label="Tổng quan" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={focused ? 'bar-chart' : 'bar-chart-outline'} label="Báo cáo" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          tabBarButton: (props) => <ChatTabButton {...props} />,
-        }}
-      />
-      <Tabs.Screen
-        name="goals"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={focused ? 'trophy' : 'trophy-outline'} label="Mục tiêu" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabItem icon={focused ? 'person' : 'person-outline'} label="Cá nhân" focused={focused} />
-          ),
-        }}
-      />
-
-      {/* Ẩn khỏi tab bar */}
-      <Tabs.Screen name="transactions" options={{ href: null }} />
-    </Tabs>
-  );
-}
-
-function TabItem({ icon, label, focused }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; focused: boolean }) {
-  const { colors } = useTheme();
-  return (
-    <View style={{ flex: 1, width: '100%', height: BG_H, alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 2, paddingTop: 4 }}>
-      <View style={{ position: 'absolute', top: 10, left: '15%', right: '15%', height: 3, borderRadius: 99, backgroundColor: focused ? colors.accent : 'transparent' }} />
-      <Ionicons name={icon} size={26} color={focused ? colors.accent : colors.textMuted} />
-      <Text
-        style={{ fontSize: 12, fontFamily: focused ? Fonts.extraBold : Fonts.semiBold, color: focused ? colors.accent : colors.textMuted, textAlign: 'center', width: '100%' } as any}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
+      {/* FAB */}
+      <TouchableOpacity
+        style={styles.fabShadow}
+        onPress={() => router.push('/add-expense')}
+        activeOpacity={0.85}
       >
-        {label}
-      </Text>
+        <BlurView intensity={80} tint="dark" style={styles.fab}>
+          <View style={styles.fabOverlay} />
+          <Text style={styles.fabText}>+</Text>
+        </BlurView>
+      </TouchableOpacity>
     </View>
   );
 }
 
-const TAB_H = Platform.OS === 'ios' ? 90 : 74;
-const BG_H = TAB_H - (Platform.OS === 'ios' ? 16 : 6);
+export default function TabsLayout() {
+  const { session, loading } = useAuth();
+
+  if (loading) return null;
+  if (!session) return <Redirect href="/(auth)/login" />;
+
+  return (
+    <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="stats" />
+      <Tabs.Screen name="goals" />
+      <Tabs.Screen name="transactions" options={{ href: null }} />
+      <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+    </Tabs>
+  );
+}
+
+const BOTTOM_INSET = Platform.OS === 'ios' ? 34 : 12;
+
+const styles = StyleSheet.create({
+  tabBarWrap: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingBottom: BOTTOM_INSET,
+    paddingHorizontal: 16,
+  },
+  pill: {
+    flex: 1,
+    flexDirection: 'row',
+    borderRadius: 28,
+    paddingVertical: 10,
+    marginRight: 12,
+    overflow: 'hidden',
+    backgroundColor: Platform.OS === 'android' ? 'rgba(255,255,255,0.92)' : 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(61,107,53,0.1)',
+    shadowColor: '#3D6B35',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(26,26,46,0.35)',
+  },
+  tabLabelActive: {
+    color: '#3D6B35',
+    fontFamily: Fonts.extraBold,
+  },
+  fabShadow: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    shadowColor: '#1a3d16',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  fab: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(45,90,39,0.62)',
+  },
+  fabText: {
+    fontSize: 30,
+    color: '#fff',
+    fontFamily: Fonts.regular,
+    lineHeight: 34,
+    marginTop: -2,
+    zIndex: 1,
+  },
+});

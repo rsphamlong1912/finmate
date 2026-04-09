@@ -42,18 +42,23 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
     setKnownUnlocked(new Set());
 
     const loadFromDB = async () => {
+      // Luôn load cache trước — cache giữ các achievement đã toast kể cả khi DB insert fail
+      const cached = await AsyncStorage.getItem(CACHE_KEY);
+      const cachedIds = new Set<string>(cached ? JSON.parse(cached) : []);
+
       const { data, error } = await supabase
         .from('user_achievements')
         .select('achievement_id')
         .eq('user_id', user.id);
 
       if (!error && data) {
-        const ids = new Set(data.map((r: any) => r.achievement_id as string));
-        setKnownUnlocked(ids);
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify([...ids]));
+        const dbIds = new Set(data.map((r: any) => r.achievement_id as string));
+        // Merge DB + cache (không overwrite cache bằng DB vì DB insert có thể đã fail trước đó)
+        const merged = new Set([...dbIds, ...cachedIds]);
+        setKnownUnlocked(merged);
+        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify([...merged]));
       } else {
-        const cached = await AsyncStorage.getItem(CACHE_KEY);
-        if (cached) setKnownUnlocked(new Set(JSON.parse(cached)));
+        setKnownUnlocked(cachedIds);
       }
       setDbLoaded(true);
     };
@@ -94,16 +99,19 @@ export function AchievementsProvider({ children }: { children: ReactNode }) {
     if (toSave.length === 0) return;
 
     const rows = toSave.map(achievement_id => ({ user_id: user.id, achievement_id }));
-    supabase.from('user_achievements').insert(rows).then(({ error }) => {
-      if (error) console.warn('Failed to save achievements to DB:', error.message);
-    });
+    // Dùng upsert thay insert để idempotent — tránh lỗi duplicate key khi retry
+    supabase.from('user_achievements')
+      .upsert(rows, { onConflict: 'user_id,achievement_id' })
+      .then(({ error }) => {
+        if (error) console.warn('Failed to save achievements to DB:', error.message);
+      });
     const merged = new Set([...knownUnlocked, ...toSave]);
     setKnownUnlocked(merged);
     AsyncStorage.setItem(CACHE_KEY, JSON.stringify([...merged]));
 
     // Queue toast notifications for newly unlocked achievements
     const newDefs = toSave.map(id => ACHIEVEMENTS.find(a => a.id === id)).filter(Boolean) as AchievementDef[];
-if (newDefs.length > 0) setToastQueue(q => [...q, ...newDefs]);
+    if (newDefs.length > 0) setToastQueue(q => [...q, ...newDefs]);
   }, [unlockedKey, dbLoaded]);
 
   const currentToast = toastQueue[0] ?? null;

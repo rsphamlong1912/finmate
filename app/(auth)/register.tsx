@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert
+  StyleSheet, Alert, Image,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
-import AppIcon from '../../assets/app-icon.svg';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function RegisterScreen() {
@@ -57,7 +56,7 @@ export default function RegisterScreen() {
         {/* HERO */}
         <View style={styles.hero}>
           <View style={styles.logoWrap}>
-            <AppIcon width={65} height={65} />
+            <Image source={require('../../assets/app-icon.png')} style={{ width: 65, height: 65, borderRadius: 16 }} />
           </View>
           <Text style={styles.appName}>FinMate</Text>
           <Text style={styles.tagline}>
@@ -203,7 +202,7 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+  submitText: { color: colors.accentText, fontSize: 16, fontFamily: Fonts.extraBold },
 
   switchBtn: { alignItems: 'center' },
   switchText: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium },

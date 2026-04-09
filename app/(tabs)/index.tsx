@@ -1,17 +1,16 @@
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Animated, Modal
+  StyleSheet, Animated, Modal, useWindowDimensions
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
 import { useCategories } from '../../context/CategoriesContext';
-import { useGoals } from '../../context/GoalsContext';
+
 import { formatVND } from '../../lib/vnd';
-import Svg, { Defs, Pattern, Rect, Line } from 'react-native-svg';
 import { Fonts } from '../../constants/fonts';
 import { StreakCalendar } from '../../components/StreakCalendar';
 import { CoinLoader } from '../../components/CoinLoader';
@@ -19,18 +18,43 @@ import { StreakCelebrationModal } from '../../components/StreakCelebrationModal'
 import { AchievementUnlockModal } from '../../components/AchievementUnlockModal';
 import { useAchievements } from '../../context/AchievementsContext';
 import { useTheme } from '../../context/ThemeContext';
-
+import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const { totalThisMonth, byCategory, expenses, loading: expensesLoading } = useExpenses();
   const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading, newStreakDay, clearNewStreakDay } = useProfile();
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji, loading: categoriesLoading } = useCategories();
-  const { goals } = useGoals();
+
   const { currentToast, dismissToast } = useAchievements();
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const CARD_W = screenWidth - 32;
+
+  // Insight slider
+  const sliderRef = useRef<ScrollView>(null);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const slideIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const SLIDE_COUNT = 4;
+
+  const startAutoSlide = useCallback(() => {
+    if (slideIntervalRef.current) clearInterval(slideIntervalRef.current);
+    slideIntervalRef.current = setInterval(() => {
+      setSlideIndex(prev => {
+        const next = (prev + 1) % SLIDE_COUNT;
+        sliderRef.current?.scrollTo({ x: next * CARD_W, animated: true });
+        return next;
+      });
+    }, 4000);
+  }, [CARD_W]);
+
+  useEffect(() => {
+    startAutoSlide();
+    return () => { if (slideIntervalRef.current) clearInterval(slideIntervalRef.current); };
+  }, [startAutoSlide]);
 
   const [showStreakModal, setShowStreakModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -55,69 +79,35 @@ export default function DashboardScreen() {
     }
   }, [showLoader, newStreakDay, profile?.streak_enabled]);
 
-  const [insightIndex, setInsightIndex] = useState(0);
-  const insightFade = useRef(new Animated.Value(1)).current;
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  const orb1Anim = useRef(new Animated.Value(0)).current;
-  const orb2Anim = useRef(new Animated.Value(0)).current;
-  const orb3Anim = useRef(new Animated.Value(0)).current;
-  const streakAnim = useRef(new Animated.Value(1)).current;
-  const dot1Anim = useRef(new Animated.Value(0.4)).current;
-  const dot2Anim = useRef(new Animated.Value(0.4)).current;
-  const dot3Anim = useRef(new Animated.Value(0.4)).current;
-  const fabAnim = useRef(new Animated.Value(0)).current;
-  const scrollY = useRef(new Animated.Value(0)).current;
   const streakModalAnim = useRef(new Animated.Value(0)).current;
-
-  const insightOpacity = scrollY.interpolate({ inputRange: [0, 60, 120], outputRange: [1, 0.5, 0], extrapolate: 'clamp' });
-  const insightScale = scrollY.interpolate({ inputRange: [0, 120], outputRange: [1, 0.93], extrapolate: 'clamp' });
-  const insightTranslateY = scrollY.interpolate({ inputRange: [0, 120], outputRange: [0, -8], extrapolate: 'clamp' });
+  const chatPulse1 = useRef(new Animated.Value(0)).current;
+  const chatPulse2 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    checkAndUpdateStreak();
+    Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(chatPulse1, { toValue: 1, duration: 1600, useNativeDriver: true }),
+          Animated.timing(chatPulse1, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.delay(800),
+          Animated.timing(chatPulse2, { toValue: 1, duration: 1600, useNativeDriver: true }),
+          Animated.timing(chatPulse2, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+  }, []);
 
-    const enter = Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]);
-
-    const orb1 = Animated.loop(Animated.sequence([
-      Animated.timing(orb1Anim, { toValue: -14, duration: 2500, useNativeDriver: true }),
-      Animated.timing(orb1Anim, { toValue: 0, duration: 2500, useNativeDriver: true }),
-    ]));
-    const orb2 = Animated.loop(Animated.sequence([
-      Animated.timing(orb2Anim, { toValue: 10, duration: 3500, useNativeDriver: true }),
-      Animated.timing(orb2Anim, { toValue: 0, duration: 3500, useNativeDriver: true }),
-    ]));
-    const orb3 = Animated.loop(Animated.sequence([
-      Animated.timing(orb3Anim, { toValue: -8, duration: 2000, useNativeDriver: true }),
-      Animated.timing(orb3Anim, { toValue: 0, duration: 2000, useNativeDriver: true }),
-    ]));
-    const streak = Animated.loop(Animated.sequence([
-      Animated.timing(streakAnim, { toValue: 0.75, duration: 1000, useNativeDriver: true }),
-      Animated.timing(streakAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-    ]));
-    const dots = [[dot1Anim, 500], [dot2Anim, 1000], [dot3Anim, 1500]].map(([anim, delay]) =>
-      Animated.loop(Animated.sequence([
-        Animated.delay(delay as number),
-        Animated.timing(anim as Animated.Value, { toValue: 1, duration: 800, useNativeDriver: true }),
-        Animated.timing(anim as Animated.Value, { toValue: 0.3, duration: 800, useNativeDriver: true }),
-      ]))
-    );
-
-    // FAB bounce in
-    Animated.spring(fabAnim, { toValue: 1, delay: 600, useNativeDriver: true, tension: 80, friction: 6 }).start();
-
-    enter.start();
-    [orb1, orb2, orb3, streak, ...dots].forEach(a => a.start());
-
-    return () => {
-      enter.stop();
-      [orb1, orb2, orb3, streak, ...dots].forEach(a => a.stop());
-    };
-  }, [checkAndUpdateStreak]);
+  const checkAndUpdateStreakRef = useRef(checkAndUpdateStreak);
+  useEffect(() => { checkAndUpdateStreakRef.current = checkAndUpdateStreak; }, [checkAndUpdateStreak]);
+  const streakChecked = useRef(false);
+  useEffect(() => {
+    if (profile && !streakChecked.current) {
+      streakChecked.current = true;
+      checkAndUpdateStreakRef.current();
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (showStreakModal) {
@@ -126,393 +116,270 @@ export default function DashboardScreen() {
     }
   }, [showStreakModal]);
 
-
   const budget = profile?.monthly_budget ?? 10_000_000;
   const streakCount = profile?.streak_count ?? 0;
-  const displayName = profile?.display_name ?? user?.email?.split('@')[0] ?? 'bạn';
-
-  const greeting = (() => {
-    const h = new Date().getHours();
-    if (h >= 5  && h < 11) return `Chào buổi sáng, ${displayName} ☀️`;
-    if (h >= 11 && h < 13) return `Trưa rồi, ${displayName} ăn chưa? 🍜`;
-    if (h >= 13 && h < 18) return `Buổi chiều vui vẻ, ${displayName} 🌤️`;
-    if (h >= 18 && h < 22) return `Buổi tối bình yên, ${displayName} 🌙`;
-    return `Thức khuya vậy, ${displayName}? 🦉`;
-  })();
-
-  const recentExpenses = expenses.slice(0, 12);
-  const pct = Math.min((totalThisMonth / budget) * 100, 100);
 
   const toLocalDateStr = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const todayStr = toLocalDateStr(new Date());
-  const yesterdayDate = new Date(); yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayStr = toLocalDateStr(yesterdayDate);
-  const getDayLabel = (s: string) => {
-    if (s === todayStr) return 'Hôm nay';
-    if (s === yesterdayStr) return 'Hôm qua';
-    const d = new Date(s + 'T00:00:00');
-    return d.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric' });
-  };
-  const groupedByDay = recentExpenses.reduce((acc, e) => {
+  const now = new Date();
+  const todayStr = toLocalDateStr(now);
+
+  // Recent transactions (this month), sorted newest first
+  const recentExpenses = expenses
+    .filter(e => {
+      const d = new Date(e.created_at);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10);
+
+  const pct = Math.min(totalThisMonth / (budget || 1), 1);
+  const monthPct = Math.round(pct * 100);
+  const remainingBudget = Math.max(budget - totalThisMonth, 0);
+
+  const daysElapsed = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = daysInMonth - daysElapsed;
+
+
+  // Top spending category for insight
+  const sortedCats = Object.entries(byCategory).sort(([, a], [, b]) => b - a);
+  const topCat = sortedCats[0];
+  const topCatPct = topCat && totalThisMonth > 0 ? Math.round((topCat[1] / totalThisMonth) * 100) : 0;
+
+  // Greeting
+  const hour = now.getHours();
+  const greeting = hour >= 5 && hour < 12 ? 'Chào buổi sáng' : hour >= 12 && hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+  const greetingEmoji = hour >= 5 && hour < 12 ? '☀️' : hour >= 12 && hour < 18 ? '🌤️' : '🌙';
+  const userName = profile?.display_name?.split(' ').pop() ?? 'bạn';
+
+  // Month label
+  const monthLabel = `tháng ${now.getMonth() + 1} năm ${now.getFullYear()}`;
+
+  const dailyBudgetLeft = daysRemaining > 0 ? Math.round(remainingBudget / daysRemaining) : 0;
+
+  const slides = [
+    {
+      icon: '💰',
+      title: monthPct >= 100 ? 'Đã vượt ngân sách!' : monthPct >= 80 ? 'Gần đến giới hạn!' : 'Kiểm soát tốt!',
+      body: monthPct >= 100
+        ? `Vượt ${formatVND(totalThisMonth - budget)}. Hãy cẩn thận chi tiêu hơn nhé!`
+        : `Dùng ${monthPct}% ngân sách. Còn ${daysRemaining} ngày — mỗi ngày nên giữ dưới ${formatVND(dailyBudgetLeft)}.`,
+      accent: monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.accent,
+      accentBg: monthPct >= 100 ? 'rgba(239,68,68,0.08)' : monthPct >= 80 ? 'rgba(245,158,11,0.08)' : colors.accentBg,
+      accentBorder: monthPct >= 100 ? 'rgba(239,68,68,0.2)' : monthPct >= 80 ? 'rgba(245,158,11,0.2)' : colors.accentBorder,
+      cta: 'Xem báo cáo →',
+      onCta: () => router.push('/(tabs)/stats'),
+    },
+    {
+      icon: topCat ? getCategoryEmoji(topCat[0]) : '📊',
+      title: 'Chi tiêu hàng đầu',
+      body: topCat
+        ? `${getCategoryLabel(topCat[0])} chiếm ${topCatPct}% tổng chi tiêu tháng này (${formatVND(topCat[1])}).`
+        : 'Chưa có giao dịch nào tháng này. Hãy thêm giao dịch đầu tiên!',
+      accent: '#f59e0b',
+      accentBg: 'rgba(245,158,11,0.08)',
+      accentBorder: 'rgba(245,158,11,0.2)',
+      cta: 'Xem thống kê →',
+      onCta: () => router.push('/(tabs)/stats'),
+    },
+    {
+      icon: '🔥',
+      title: streakCount >= 1 ? `${streakCount} ngày streak!` : 'Bắt đầu streak hôm nay',
+      body: streakCount >= 7
+        ? `Tuyệt vời! ${streakCount} ngày ghi chép liên tiếp. Bạn đang xây dựng thói quen tài chính tuyệt vời!`
+        : streakCount >= 1
+        ? `${streakCount} ngày liên tiếp rồi! Đừng quên ghi lại chi tiêu hôm nay.`
+        : 'Ghi lại chi tiêu mỗi ngày để xây dựng thói quen tài chính vững chắc.',
+      accent: '#ef4444',
+      accentBg: 'rgba(239,68,68,0.08)',
+      accentBorder: 'rgba(239,68,68,0.2)',
+      cta: 'Xem lịch streak →',
+      onCta: () => setShowStreakModal(true),
+    },
+    {
+      icon: '✨',
+      title: 'Hỏi FinMate AI',
+      body: 'Phân tích chi tiêu cá nhân hoá, gợi ý tiết kiệm và trả lời mọi câu hỏi tài chính của bạn.',
+      accent: colors.accent,
+      accentBg: colors.accentBg,
+      accentBorder: colors.accentBorder,
+      cta: 'Chat ngay →',
+      onCta: () => router.push('/(tabs)/chat'),
+    },
+  ];
+
+  // Group recent expenses by date
+  const grouped = recentExpenses.reduce<Record<string, typeof recentExpenses>>((acc, e) => {
     const key = toLocalDateStr(new Date(e.created_at));
     if (!acc[key]) acc[key] = [];
     acc[key].push(e);
     return acc;
-  }, {} as Record<string, typeof expenses>);
-  const sortedDays = Object.keys(groupedByDay).sort((a, b) => b.localeCompare(a)).slice(0, 3);
-  const remaining = Math.max(budget - totalThisMonth, 0);
-  const now = new Date();
-  const monthName = now.toLocaleString('vi-VN', { month: 'long', year: 'numeric' });
-
-  const topCat = Object.entries(byCategory).sort(([, a], [, b]) => b - a)[0];
-  const topCatName = topCat ? getCategoryLabel(topCat[0]) : null;
-  const pctBudget = Math.round(pct);
-  const topCatPct = topCat ? Math.round((topCat[1] / (totalThisMonth || 1)) * 100) : 0;
-  const daysElapsed = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = daysInMonth - daysElapsed;
-  const dailyAvg = daysElapsed > 0 ? totalThisMonth / daysElapsed : 0;
-  const dailyAllowed = daysRemaining > 0 ? remaining / daysRemaining : 0;
-  type BodyPart = { text: string; bold?: boolean };
-  type InsightCard = {
-    emoji: string; title: string; bodyParts: BodyPart[]; prompt: string;
-    bg: string; border: string; titleColor: string; bodyColor: string;
-    badgeBg: string; badgeColor: string; ctaColor: string;
+  }, {});
+  const sortedDays = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const yesterdayStr = toLocalDateStr(new Date(Date.now() - 86400000));
+  const getDayLabel = (dateStr: string) => {
+    if (dateStr === todayStr) return 'Hôm nay';
+    if (dateStr === yesterdayStr) return 'Hôm qua';
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric' });
   };
-
-  const insights: InsightCard[] = (() => {
-    const list: InsightCard[] = [];
-
-    // 1. Budget status
-    if (totalThisMonth === 0) {
-      list.push({
-        emoji: '🌱', title: 'Chưa có giao dịch nào',
-        bodyParts: [{ text: 'Thêm chi tiêu đầu tiên để FinMate bắt đầu phân tích cho bạn.' }],
-        prompt: '💡 Gợi ý tiết kiệm cho tôi',
-        bg: 'rgba(129,140,248,0.08)', border: 'rgba(129,140,248,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(129,140,248,0.15)', badgeColor: colors.accent, ctaColor: colors.accent,
-      });
-    } else if (pct >= 90) {
-      list.push({
-        emoji: '😬', title: `Đã dùng ${pctBudget}% ngân sách`,
-        bodyParts: [
-          { text: 'Bạn sắp vượt mức tháng này. ' },
-          ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm nhiều nhất (${topCatPct}%). ` }] : []),
-          { text: 'Muốn tôi gợi ý cắt giảm không?' },
-        ],
-        prompt: '⚠️ Tôi đang tiêu quá tay không?',
-        bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(239,68,68,0.12)', badgeColor: colors.danger, ctaColor: colors.danger,
-      });
-    } else if (pct >= 60) {
-      list.push({
-        emoji: '🤔', title: topCatName ? `${topCatName} chiếm ${topCatPct}%` : `Đã dùng ${pctBudget}% ngân sách`,
-        bodyParts: [{ text: `Bạn đã dùng ${pctBudget}% ngân sách tháng này. Hãy để FinMate giúp cân bằng lại.` }],
-        prompt: '📊 Phân tích chi tiêu tháng này',
-        bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(251,191,36,0.12)', badgeColor: colors.warning, ctaColor: colors.warning,
-      });
-    } else {
-      list.push({
-        emoji: '💪', title: 'Bạn đang kiểm soát tốt!',
-        bodyParts: [
-          { text: `Mới dùng ${pctBudget}% ngân sách. ` },
-          ...(topCatName ? [{ text: topCatName, bold: true }, { text: ` chiếm ${topCatPct}% chi tiêu. ` }] : []),
-          { text: 'Tiếp tục phát huy nhé!' },
-        ],
-        prompt: '🎯 Lập kế hoạch ngân sách',
-        bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(52,211,153,0.12)', badgeColor: colors.success, ctaColor: colors.success,
-      });
-    }
-
-    // 2. Spending velocity (nếu có data và còn ngày trong tháng)
-    if (totalThisMonth > 0 && daysRemaining > 0) {
-      const overSpeed = dailyAvg > dailyAllowed;
-      list.push({
-        emoji: overSpeed ? '⚡' : '📈',
-        title: overSpeed ? 'Đang chi vượt tốc độ' : 'Tốc độ chi tiêu ổn định',
-        bodyParts: [
-          { text: 'Trung bình bạn chi ' },
-          { text: formatVND(Math.round(dailyAvg)), bold: true },
-          { text: '/ngày. Còn ' },
-          { text: `${daysRemaining} ngày`, bold: true },
-          { text: ', mỗi ngày chỉ nên chi tối đa ' },
-          { text: formatVND(Math.round(dailyAllowed)), bold: true },
-          { text: ' để không vượt ngân sách.' },
-        ],
-        prompt: `Tôi đang chi ${formatVND(Math.round(dailyAvg))}/ngày, hãy giúp tôi tối ưu chi tiêu`,
-        bg: overSpeed ? 'rgba(239,68,68,0.08)' : 'rgba(52,211,153,0.08)',
-        border: overSpeed ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)',
-        titleColor: colors.textPrimary, bodyColor: colors.textSecondary,
-        badgeBg: overSpeed ? 'rgba(239,68,68,0.12)' : 'rgba(52,211,153,0.12)',
-        badgeColor: overSpeed ? colors.danger : colors.success,
-        ctaColor: overSpeed ? colors.danger : colors.success,
-      });
-    }
-
-    // 3. Streak
-    const streak = profile?.streak_count ?? 0;
-    if (streak > 0) {
-      list.push({
-        emoji: streak >= 7 ? '🔥' : '⚡',
-        title: `${streak} ngày streak liên tiếp!`,
-        bodyParts: [
-          { text: streak >= 30 ? 'Xuất sắc! ' : streak >= 7 ? 'Tuyệt vời! ' : 'Khởi đầu tốt! ' },
-          { text: `Bạn đã theo dõi tài chính ` },
-          { text: `${streak} ngày`, bold: true },
-          { text: ' liên tiếp. Đừng bỏ lỡ hôm nay nhé!' },
-        ],
-        prompt: 'Tôi đã theo dõi tài chính tốt chưa?',
-        bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(251,191,36,0.12)', badgeColor: colors.warning, ctaColor: colors.warning,
-      });
-    }
-
-    // 4. Goals progress (goal gần hoàn thành nhất)
-    const activeGoals = goals.filter(g => g.saved_amount < g.target_amount);
-    if (activeGoals.length > 0) {
-      const closest = activeGoals.reduce((a, b) =>
-        (b.saved_amount / b.target_amount) > (a.saved_amount / a.target_amount) ? b : a
-      );
-      const goalPct = Math.round((closest.saved_amount / closest.target_amount) * 100);
-      list.push({
-        emoji: '🎯', title: `Mục tiêu: ${closest.title}`,
-        bodyParts: [
-          { text: `Đã tiết kiệm ` },
-          { text: `${goalPct}%`, bold: true },
-          { text: ` (${formatVND(closest.saved_amount)} / ${formatVND(closest.target_amount)}). ` },
-          { text: goalPct >= 80 ? 'Gần đến đích rồi, cố lên!' : 'Tiếp tục duy trì nhé!' },
-        ],
-        prompt: `Gợi ý giúp tôi đạt mục tiêu "${closest.title}" nhanh hơn`,
-        bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)', titleColor: colors.textPrimary,
-        bodyColor: colors.textSecondary, badgeBg: 'rgba(52,211,153,0.12)', badgeColor: colors.success, ctaColor: colors.success,
-      });
-    }
-
-    return list;
-  })();
-
-  const insight = insights[Math.min(insightIndex, insights.length - 1)];
-
-  // Auto-rotate mỗi 4.5s với fade transition
-  useEffect(() => {
-    if (insights.length <= 1) return;
-    const interval = setInterval(() => {
-      Animated.timing(insightFade, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => {
-        setInsightIndex(i => (i + 1) % insights.length);
-        Animated.timing(insightFade, { toValue: 1, duration: 250, useNativeDriver: true }).start();
-      });
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [insights.length]);
 
   return (
     <View style={styles.root}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
 
-      {/* HEADER — sticky, ngoài ScrollView */}
-      <View style={styles.top}>
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <Svg width="100%" height="100%">
-              <Defs>
-                <Pattern id="grid" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <Line x1="28" y1="0" x2="28" y2="28" stroke={colors.divider} strokeWidth="0.5" />
-                  <Line x1="0" y1="28" x2="28" y2="28" stroke={colors.divider} strokeWidth="0.5" />
-                </Pattern>
-              </Defs>
-              <Rect width="100%" height="100%" fill="url(#grid)" />
-            </Svg>
+        {/* HEADER BLOCK */}
+        <View style={styles.headerBlock}>
+          {/* Greeting row */}
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.greeting}>{greeting}, {userName} {greetingEmoji}</Text>
+              <Text style={styles.monthLabel}>{monthLabel}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => router.push('/profile')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
           </View>
 
-          <Animated.View style={[styles.orb1, { transform: [{ translateY: orb1Anim }] }]} />
-          <Animated.View style={[styles.orb2, { transform: [{ translateY: orb2Anim }] }]} />
-          <Animated.View style={[styles.orb3, { transform: [{ translateY: orb3Anim }] }]} />
-          <View style={styles.ring1} />
-          <View style={styles.ring2} />
-          <Animated.View style={[styles.dot, { top: 40, right: 90, opacity: dot1Anim }]} />
-          <Animated.View style={[styles.dot, { top: 65, right: 60, opacity: dot2Anim }]} />
-          <Animated.View style={[styles.dot, { top: 28, right: 52, opacity: dot3Anim }]} />
-          <Animated.View style={[styles.dot, { top: 80, right: 110, opacity: dot1Anim }]} />
+          {/* TOTAL SPENDING */}
+          <View style={styles.spendingSection}>
+            <Text style={styles.spendingLabel}>Tổng chi tiêu</Text>
+            <Text style={styles.spendingAmount}>{formatVND(totalThisMonth)}</Text>
 
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-            <View style={styles.topRow}>
-              <View>
-                <Text style={styles.greeting}>{greeting}</Text>
-                <Text style={styles.period}>{monthName}</Text>
-              </View>
+            {/* Streak badge */}
+            {profile?.streak_enabled && streakCount > 0 && (
               <TouchableOpacity
-                style={styles.avatarBtn}
-                onPress={() => router.push('/(tabs)/profile')}
+                style={styles.streakBadge}
+                onPress={() => setShowStreakModal(true)}
+                activeOpacity={0.8}
               >
-                <Text style={styles.avatarText}>
-                  {(profile?.display_name?.[0] ?? user?.email?.[0] ?? 'U').toUpperCase()}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.totalLabel}>Tổng chi tiêu</Text>
-            <Text style={styles.totalAmount}>{formatVND(totalThisMonth)}</Text>
-
-            {streakCount > 0 && (
-              <TouchableOpacity onPress={() => setShowStreakModal(true)} activeOpacity={0.8}>
-                <Animated.View style={[styles.streakBadge, { opacity: streakAnim }]}>
-                  <Text style={{ fontSize: 13 }}>🔥</Text>
-                  <Text style={styles.streakText}>{streakCount} ngày streak!</Text>
-                  <Text style={styles.streakArrow}>›</Text>
-                </Animated.View>
+                <Text style={styles.streakBadgeText}>🔥 {streakCount} ngày streak!</Text>
+                <Ionicons name="chevron-forward" size={13} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             )}
+          </View>
 
-            <View style={styles.progRow}>
-              <Text style={styles.progLabel}>Ngân sách tháng</Text>
-              <Text style={styles.progPct}>{Math.round(pct)}%</Text>
+          {/* BUDGET PROGRESS */}
+          <View style={styles.budgetSection}>
+            <View style={styles.budgetLabelRow}>
+              <Text style={styles.budgetLabel}>Ngân sách tháng</Text>
+              <Text style={styles.budgetPct}>{monthPct}%</Text>
             </View>
-            <View style={styles.progTrack}>
-              <View style={[
-                styles.progFill,
-                { width: `${pct}%` as any },
-                pct >= 90 && { backgroundColor: '#f87171' },
-              ]} />
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${Math.min(monthPct, 100)}%` as any, backgroundColor: monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.accent }]} />
             </View>
-            <View style={styles.progBottom}>
-              <Text style={styles.progSub}>
-                {remaining > 0
-                  ? `Còn lại ${formatVND(remaining)} 💪`
-                  : 'Đã vượt ngân sách ⚠️'}
+            <View style={styles.budgetBottomRow}>
+              <Text style={styles.remainingText}>
+                Còn lại {formatVND(remainingBudget)} 💪
               </Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/stats')}>
+              <TouchableOpacity onPress={() => router.push('/(tabs)/stats')} activeOpacity={0.7}>
                 <Text style={styles.reportLink}>Xem báo cáo →</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
-      </View>
+          </View>
+        </View>
 
-      {/* SCROLL — chỉ phần này scroll */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
-        scrollEventThrottle={16}
-      >
-        <View style={styles.bottom}>
-
-          {/* AI Insight Card — rotating */}
-          <Animated.View style={{ opacity: insightOpacity, transform: [{ scale: insightScale }, { translateY: insightTranslateY }] }}>
-            <Animated.View style={{ opacity: insightFade }}>
-              <TouchableOpacity
-                style={[styles.insightCard, { backgroundColor: insight.bg, borderColor: insight.border }]}
-                activeOpacity={0.85}
-                onPress={() => router.push({ pathname: '/(tabs)/chat', params: { prompt: insight.prompt } })}
+        {/* INSIGHT SLIDER */}
+        <View style={styles.sliderWrap}>
+          <ScrollView
+            ref={sliderRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={e => {
+              const idx = Math.round(e.nativeEvent.contentOffset.x / CARD_W);
+              setSlideIndex(idx);
+              startAutoSlide();
+            }}
+            scrollEventThrottle={16}
+          >
+            {slides.map((slide, i) => (
+              <View
+                key={i}
+                style={[styles.insightCard, {
+                  width: CARD_W,
+                  backgroundColor: slide.accentBg,
+                  borderColor: slide.accentBorder,
+                }]}
               >
-                <View style={styles.insightTop}>
-                  <Text style={styles.insightEmoji}>{insight.emoji}</Text>
+                <View style={styles.insightInner}>
+                  <Text style={styles.insightIcon}>{slide.icon}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.insightTitle, { color: insight.titleColor }]}>{insight.title}</Text>
-                    <Text style={[styles.insightBody, { color: insight.bodyColor }]}>
-                      {insight.bodyParts.map((p, i) =>
-                        p.bold
-                          ? <Text key={i} style={{ fontFamily: Fonts.bold, color: insight.titleColor }}>{p.text}</Text>
-                          : p.text
-                      )}
-                    </Text>
+                    <Text style={[styles.insightTitle, { color: slide.accent }]}>{slide.title}</Text>
+                    <Text style={styles.insightBody}>{slide.body}</Text>
                   </View>
                 </View>
                 <View style={styles.insightFooter}>
-                  <View style={[styles.insightBadge, { backgroundColor: insight.badgeBg }]}>
-                    <Text style={[styles.insightBadgeText, { color: insight.badgeColor }]}>✦ FinMate AI</Text>
+                  <View style={[styles.finmateBadge, { backgroundColor: slide.accent }]}>
+                    <Text style={styles.finmateBadgeText}>✦ FinMate AI</Text>
                   </View>
-                  <Text style={[styles.insightCta, { color: insight.ctaColor }]}>Hỏi FinMate →</Text>
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-            {insights.length > 1 && (
-              <View style={styles.insightDots}>
-                {insights.map((_, i) => (
-                  <TouchableOpacity key={i} onPress={() => {
-                    Animated.timing(insightFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-                      setInsightIndex(i);
-                      Animated.timing(insightFade, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-                    });
-                  }}>
-                    <View style={[styles.insightDot, i === insightIndex && styles.insightDotActive, { backgroundColor: i === insightIndex ? insight.badgeColor : colors.divider }]} />
+                  <TouchableOpacity onPress={slide.onCta} activeOpacity={0.7}>
+                    <Text style={[styles.askFinmate, { color: slide.accent }]}>{slide.cta}</Text>
                   </TouchableOpacity>
-                ))}
+                </View>
               </View>
-            )}
-          </Animated.View>
+            ))}
+          </ScrollView>
 
-          {/* Recent */}
-          <View style={styles.section}>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')}>
-                <Text style={styles.seeAll}>Xem tất cả →</Text>
-              </TouchableOpacity>
-            </View>
-            {recentExpenses.length === 0 ? (
-              <View style={styles.txCard}>
-                <View style={styles.emptyWrap}>
-                  <Text style={{ fontSize: 40, marginBottom: 10 }}>💳</Text>
-                  <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
-                  <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/add-expense')}>
-                    <Text style={styles.emptyBtnText}>+ Thêm chi tiêu đầu tiên</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              sortedDays.map(day => {
-                const items = groupedByDay[day];
-                return (
-                  <View key={day} style={{ marginBottom: 10 }}>
-                    <Text style={styles.dayLabel}>{getDayLabel(day)}</Text>
-                    <View style={styles.txCard}>
-                      {items.map((e, i) => {
-                        const color = getCategoryColor(e.category);
-                        const catLabel = getCategoryLabel(e.category);
-                        const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                        return (
-                          <TouchableOpacity
-                            key={e.id}
-                            style={[styles.txRow, i < items.length - 1 && styles.txBorder]}
-                            activeOpacity={0.7}
-                            onPress={() => router.push({ pathname: '/edit-expense', params: { id: e.id, amount: String(e.amount), category: e.category, note: e.note ?? '', date: e.created_at } })}
-                          >
-                            <View style={[styles.txIconWrap, { backgroundColor: color + '1a' }]}>
-                              <Text style={{ fontSize: 20 }}>{getCategoryEmoji(e.category)}</Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.txCat} numberOfLines={1}>{e.note || catLabel}</Text>
-                              <Text style={styles.txMeta}>{catLabel} · {time}</Text>
-                            </View>
-                            <Text style={[styles.txAmt, { color }]}>-{formatVND(e.amount)}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                );
-              })
-            )}
+          {/* Dots */}
+          <View style={styles.dots}>
+            {slides.map((_, i) => (
+              <View key={i} style={[styles.dot, i === slideIndex && styles.dotActive]} />
+            ))}
           </View>
-
-          <View style={{ height: 120 }} />
         </View>
+
+        {/* RECENT TRANSACTIONS */}
+        <View style={styles.txHeader}>
+          <Text style={styles.txHeaderTitle}>Giao dịch gần đây</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/transactions')} activeOpacity={0.7}>
+            <Text style={styles.txHeaderLink}>Xem tất cả →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {recentExpenses.length === 0 ? (
+          <Text style={styles.emptyMsg}>Chưa có giao dịch nào tháng này</Text>
+        ) : (
+          sortedDays.map(day => (
+            <View key={day}>
+              <Text style={styles.dayLabel}>{getDayLabel(day)}</Text>
+              <View style={styles.txGroup}>
+                {grouped[day].map((e, idx) => {
+                  const catLabel = getCategoryLabel(e.category);
+                  const emoji = getCategoryEmoji(e.category);
+                  const color = getCategoryColor(e.category);
+                  const time = new Date(e.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                  const isLast = idx === grouped[day].length - 1;
+                  return (
+                    <TouchableOpacity
+                      key={e.id}
+                      style={[styles.txItem, !isLast && styles.txItemBorder]}
+                      activeOpacity={0.7}
+                      onPress={() => router.push({
+                        pathname: '/edit-expense',
+                        params: { id: e.id, amount: String(e.amount), category: e.category, note: e.note ?? '', date: e.created_at },
+                      })}
+                    >
+                      <View style={[styles.txIcon, { backgroundColor: color + '22' }]}>
+                        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.txName} numberOfLines={1}>{e.note || catLabel}</Text>
+                        <Text style={styles.txMeta}>{catLabel} · {time}</Text>
+                      </View>
+                      <Text style={styles.txAmount}>-{formatVND(e.amount)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
-
-
-      {/* FAB — nút + cố định góc dưới phải */}
-      <Animated.View style={[styles.fabWrap, {
-        transform: [{ scale: fabAnim }],
-        opacity: fabAnim,
-      }]}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => router.push('/add-expense')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
-      </Animated.View>
 
       {/* COIN LOADER */}
       {showLoader && <CoinLoader />}
@@ -538,14 +405,15 @@ export default function DashboardScreen() {
           <Animated.View style={[styles.modalSheet, {
             transform: [{ translateY: streakModalAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] }) }],
           }]}>
-            {/* Handle */}
             <View style={styles.modalHandle} />
-
-            {/* Hero banner */}
             <View style={styles.modalBanner}>
               <View style={styles.bannerOrb1} />
               <View style={styles.bannerOrb2} />
-              <TouchableOpacity style={styles.bannerCloseBtn} onPress={() => setShowStreakModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity
+                style={styles.bannerCloseBtn}
+                onPress={() => setShowStreakModal(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Text style={styles.bannerCloseTxt}>✕</Text>
               </TouchableOpacity>
               <Text style={styles.bannerFire}>🔥</Text>
@@ -553,14 +421,30 @@ export default function DashboardScreen() {
               <Text style={styles.bannerLabel}>ngày liên tiếp</Text>
               <Text style={styles.bannerHint}>Ghi lại mỗi ngày để không bỏ lỡ{'\n'}bức tranh tài chính của bạn</Text>
             </View>
-
-            {/* Calendar */}
             <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
               <StreakCalendar streakDates={streakDates} streakCount={streakCount} />
             </ScrollView>
           </Animated.View>
         </Animated.View>
       </Modal>
+
+      {/* Chat FAB */}
+      <View style={styles.fabWrap} pointerEvents="box-none">
+        <Animated.View style={[styles.fabPulseRing, {
+          transform: [{ scale: chatPulse1.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+          opacity: chatPulse1.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.2, 0] }),
+        }]} />
+        <Animated.View style={[styles.fabPulseRing, {
+          transform: [{ scale: chatPulse2.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
+          opacity: chatPulse2.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.2, 0] }),
+        }]} />
+        <TouchableOpacity style={styles.fabShadow} onPress={() => router.push('/(tabs)/chat')} activeOpacity={0.85}>
+          <BlurView intensity={75} tint="light" style={styles.fab}>
+            <View style={styles.fabOverlay} />
+            <Ionicons name="sparkles" size={22} color="#fff" style={{ zIndex: 1 }} />
+          </BlurView>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -569,32 +453,303 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.bg },
 
-    top: {
+    // HEADER
+    headerBlock: {
       backgroundColor: colors.surface,
-      paddingTop: 56, paddingBottom: 40, paddingHorizontal: 24,
-      borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
-      overflow: 'hidden',
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: colors.shadowOpacity,
+      shadowRadius: 16,
+      elevation: 6,
+      marginBottom: 20,
     },
-    orb1: { position: 'absolute', top: -70, right: -70, width: 200, height: 200, borderRadius: 100, backgroundColor: colors.orb1 },
-    orb2: { position: 'absolute', bottom: -40, left: -50, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.orb2 },
-    orb3: { position: 'absolute', top: 50, left: 30, width: 70, height: 70, borderRadius: 35, backgroundColor: colors.accentBg },
-    ring1: { position: 'absolute', top: -20, right: 20, width: 90, height: 90, borderRadius: 45, borderWidth: 1, borderColor: colors.divider },
-    ring2: { position: 'absolute', bottom: 20, right: 60, width: 45, height: 45, borderRadius: 23, borderWidth: 1, borderColor: colors.divider },
-    dot: { position: 'absolute', width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textSecondary },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingTop: 60,
+      paddingBottom: 8,
+      paddingHorizontal: 20,
+    },
+    greeting: {
+      fontSize: 22,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+      lineHeight: 28,
+    },
+    monthLabel: {
+      fontSize: 13,
+      fontFamily: Fonts.medium,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    settingsBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontSize: 18,
+      fontFamily: Fonts.extraBold,
+      color: '#fff',
+    },
 
-    topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-    greeting: { fontSize: 18, fontFamily: Fonts.extraBold, color: colors.textPrimary },
-    period: { fontSize: 12, color: colors.textSecondary, marginTop: 2, fontFamily: Fonts.medium },
-    avatarBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.accentBorder },
-    avatarText: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+    // SPENDING
+    spendingSection: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 24,
+    },
+    spendingLabel: {
+      fontSize: 13,
+      fontFamily: Fonts.medium,
+      color: colors.textSecondary,
+      marginBottom: 6,
+    },
+    spendingAmount: {
+      fontSize: 40,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+      letterSpacing: -1,
+      marginBottom: 14,
+    },
+    streakBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      backgroundColor: 'rgba(0,0,0,0.65)',
+      borderRadius: 20,
+      paddingHorizontal: 14,
+      paddingVertical: 7,
+      gap: 4,
+    },
+    streakBadgeText: {
+      fontSize: 13,
+      fontFamily: Fonts.semiBold,
+      color: '#fff',
+    },
 
-    totalLabel: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold, marginBottom: 4 },
-    totalAmount: { fontSize: 36, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: -1, marginBottom: 14 },
+    // BUDGET
+    budgetSection: {
+      paddingHorizontal: 20,
+      marginBottom: 20,
+    },
+    budgetLabelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    budgetLabel: {
+      fontSize: 13,
+      fontFamily: Fonts.medium,
+      color: colors.textSecondary,
+    },
+    budgetPct: {
+      fontSize: 13,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+    },
+    progressTrack: {
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.divider,
+      overflow: 'hidden',
+      marginBottom: 10,
+    },
+    progressFill: {
+      height: 6,
+      borderRadius: 3,
+    },
+    budgetBottomRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    remainingText: {
+      fontSize: 13,
+      fontFamily: Fonts.semiBold,
+      color: colors.textSecondary,
+    },
+    reportLink: {
+      fontSize: 13,
+      fontFamily: Fonts.semiBold,
+      color: colors.accent,
+    },
 
-    streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.cardBorder, borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start', marginBottom: 18 },
-    streakText: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
-    streakArrow: { fontSize: 14, color: colors.textSecondary, fontFamily: Fonts.bold, marginLeft: 2 },
+    // INSIGHT SLIDER
+    sliderWrap: {
+      marginHorizontal: 16,
+      marginBottom: 24,
+    },
+    insightCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      padding: 16,
+    },
+    dots: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 10,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.divider,
+    },
+    dotActive: {
+      width: 18,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.accent,
+    },
+    insightInner: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 14,
+    },
+    insightIcon: {
+      fontSize: 28,
+    },
+    insightTitle: {
+      fontSize: 15,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    insightBody: {
+      fontSize: 13,
+      fontFamily: Fonts.medium,
+      color: colors.textSecondary,
+      lineHeight: 19,
+    },
+    insightFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    finmateBadge: {
+      backgroundColor: colors.accent,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+    },
+    finmateBadgeText: {
+      fontSize: 11,
+      fontFamily: Fonts.bold,
+      color: '#fff',
+    },
+    askFinmate: {
+      fontSize: 13,
+      fontFamily: Fonts.semiBold,
+      color: colors.accent,
+    },
 
+    // TRANSACTIONS
+    txHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      marginBottom: 12,
+    },
+    txHeaderTitle: {
+      fontSize: 17,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+    },
+    txHeaderLink: {
+      fontSize: 13,
+      fontFamily: Fonts.semiBold,
+      color: colors.accent,
+    },
+    dayLabel: {
+      fontSize: 12,
+      fontFamily: Fonts.bold,
+      color: colors.textMuted,
+      marginHorizontal: 20,
+      marginBottom: 6,
+      marginTop: 2,
+    },
+    txGroup: {
+      backgroundColor: colors.surface,
+      marginHorizontal: 16,
+      marginBottom: 12,
+      borderRadius: 16,
+      overflow: 'hidden',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: colors.shadowOpacity,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    txItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 14,
+      gap: 12,
+    },
+    txItemBorder: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.divider,
+    },
+    txIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    txName: {
+      fontSize: 14,
+      fontFamily: Fonts.bold,
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    txMeta: {
+      fontSize: 12,
+      fontFamily: Fonts.medium,
+      color: colors.textMuted,
+    },
+    txAmount: {
+      fontSize: 14,
+      fontFamily: Fonts.extraBold,
+      color: colors.textPrimary,
+    },
+
+    emptyMsg: {
+      fontSize: 14,
+      fontFamily: Fonts.medium,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginVertical: 28,
+      marginHorizontal: 20,
+    },
+
+    // MODALS
     modalOverlay: { flex: 1, backgroundColor: 'rgba(10,4,30,0.65)', justifyContent: 'flex-end', flexDirection: 'column' },
     modalSheet: {
       backgroundColor: colors.surface,
@@ -603,7 +758,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       borderWidth: 1, borderColor: colors.cardBorder,
     },
     modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder, alignSelf: 'center', position: 'absolute', top: 10, zIndex: 10 },
-
     modalBanner: { backgroundColor: colors.surface, paddingTop: 20, paddingBottom: 16, alignItems: 'center', overflow: 'hidden' },
     bannerOrb1: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: colors.orb1 },
     bannerOrb2: { position: 'absolute', bottom: -40, left: -40, width: 110, height: 110, borderRadius: 55, backgroundColor: colors.orb2 },
@@ -613,61 +767,45 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     bannerCount: { fontSize: 40, fontFamily: Fonts.extraBold, color: colors.textPrimary, lineHeight: 44 },
     bannerLabel: { fontSize: 13, fontFamily: Fonts.semiBold, color: colors.textSecondary, marginBottom: 8 },
     bannerHint: { fontSize: 12, fontFamily: Fonts.medium, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
-
     modalBody: { padding: 20, paddingBottom: 8 },
 
-    progRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    progLabel: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.semiBold },
-    progPct: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.extraBold },
-    progTrack: { backgroundColor: colors.divider, borderRadius: 99, height: 7, overflow: 'hidden', marginBottom: 10 },
-    progFill: { height: 7, borderRadius: 99, backgroundColor: colors.accent },
-    progBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    progSub: { fontSize: 12, color: colors.textSecondary, fontFamily: Fonts.bold },
-    reportLink: { fontSize: 12, color: colors.accent, fontFamily: Fonts.bold },
-
-    bottom: { paddingHorizontal: 20, paddingTop: 20 },
-    section: { marginBottom: 20 },
-    sectionTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 12 },
-    sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    seeAll: { fontSize: 13, color: colors.accent, fontFamily: Fonts.bold },
-
-    insightCard: {
-      backgroundColor: colors.card, borderRadius: 22, padding: 18, marginBottom: 20,
-      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: colors.shadowOpacity, shadowRadius: 16, elevation: 4,
-      borderWidth: 1, borderColor: colors.cardBorder,
+    // CHAT FAB
+    fabWrap: {
+      position: 'absolute',
+      bottom: 100,
+      right: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    insightTop: { flexDirection: 'row', gap: 14, marginBottom: 14 },
-    insightEmoji: { fontSize: 28, marginTop: 2 },
-    insightTitle: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 5, lineHeight: 20 },
-    insightBody: { fontSize: 13, fontFamily: Fonts.regular, color: colors.textSecondary, lineHeight: 20 },
-    insightFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    insightBadge: { backgroundColor: colors.accentBg, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4 },
-    insightBadgeText: { fontSize: 10, fontFamily: Fonts.semiBold, color: colors.accent },
-    insightCta: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
-    insightDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: -10, marginBottom: 12 },
-    insightDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.divider },
-    insightDotActive: { width: 18, borderRadius: 3 },
-
-    dayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, marginLeft: 2 },
-    dayLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted, marginBottom: 8 },
-    dayTotal: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.accent },
-
-    txCard: { backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: colors.shadowOpacity, shadowRadius: 12, elevation: 3 },
-    txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-    txBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
-    txIconWrap: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-    txCat: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 2 },
-    txMeta: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.medium },
-    txAmt: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.accent },
-
-    emptyWrap: { alignItems: 'center', padding: 28 },
-    emptyText: { fontSize: 14, fontFamily: Fonts.bold, color: colors.textSecondary, marginBottom: 14 },
-    emptyBtn: { backgroundColor: colors.accent, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 },
-    emptyBtnText: { color: '#fff', fontSize: 13, fontFamily: Fonts.extraBold },
-
-    fabWrap: { position: 'absolute', bottom: 32, right: 24 },
-    fab: { width: 58, height: 58, borderRadius: 29, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 12 },
-    fabText: { fontSize: 30, color: '#fff', fontFamily: Fonts.regular, lineHeight: 34, marginTop: -2 },
+    fabPulseRing: {
+      position: 'absolute',
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: 'rgba(245,158,11,0.6)',
+    },
+    fabShadow: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      shadowColor: '#b45309',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4,
+      shadowRadius: 14,
+      elevation: 10,
+    },
+    fab: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      overflow: 'hidden',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fabOverlay: {
+      position: 'absolute',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(245,158,11,0.75)',
+    },
   });
 }

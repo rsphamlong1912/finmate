@@ -17,10 +17,10 @@ import { useTheme } from '../../context/ThemeContext';
 type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; timestamp?: Date; isError?: boolean; retryText?: string; };
 
 const QUICK_PROMPTS = [
-  { emoji: '📊', label: 'Phân tích chi tiêu tháng này', prompt: 'Phân tích chi tiêu tháng này của tôi' },
-  { emoji: '💡', label: 'Gợi ý tiết kiệm cho tôi',      prompt: 'Gợi ý tiết kiệm cho tôi' },
-  { emoji: '⚠️', label: 'Tôi đang tiêu quá tay không?', prompt: 'Tôi đang tiêu quá tay không?' },
-  { emoji: '🎯', label: 'Lập kế hoạch ngân sách',       prompt: 'Giúp tôi lập kế hoạch ngân sách' },
+  { emoji: '📊', label: 'Tháng này tớ tiêu hết bao nhiêu?', prompt: 'Tháng này tớ tiêu hết bao nhiêu rồi?' },
+  { emoji: '🤔', label: 'Tớ đang tiêu quá tay không?',      prompt: 'Tớ đang tiêu quá tay không?' },
+  { emoji: '💡', label: 'Gợi ý để tớ tiết kiệm hơn',       prompt: 'Bạn có gợi ý gì để tớ tiết kiệm hơn không?' },
+  { emoji: '🎯', label: 'Giúp tớ lên kế hoạch ngân sách',  prompt: 'Giúp tớ lên kế hoạch ngân sách đi' },
 ];
 
 /* ── Skeleton chat bubbles ── */
@@ -195,7 +195,15 @@ export default function ChatScreen() {
         goals: goals.map(g => ({ title: g.title, saved: g.saved_amount, target: g.target_amount })),
         currency: '₫',
         displayName: profile?.display_name,
-        recentExpenses: fresh.slice(0, 30).map(e => ({
+        recentExpenses: [
+          // Tất cả giao dịch tháng này (để khớp với totalThisMonth/byCategory)
+          ...thisMonth,
+          // Thêm tối đa 15 giao dịch tháng cũ để AI có context lịch sử
+          ...fresh.filter(e => {
+            const d = new Date(e.created_at);
+            return !(d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear());
+          }).slice(0, 15),
+        ].map(e => ({
           note: e.note,
           category: getCatName(e.category),
           amount: e.amount,
@@ -238,7 +246,7 @@ export default function ChatScreen() {
   };
 
   const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: colors.bg },
+    root: { flex: 1, backgroundColor: colors.bg, paddingBottom: Platform.OS === 'ios' ? 90 : 68 },
 
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -257,7 +265,7 @@ export default function ChatScreen() {
       alignItems: 'center', justifyContent: 'center',
       borderWidth: 2, borderColor: colors.accentBorder,
     },
-    avatarMonogram: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: 0.5 },
+    avatarMonogram: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.accentText, letterSpacing: 0.5 },
     avatarOnline: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.success, borderWidth: 2, borderColor: colors.surface },
     headerTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 2 },
     statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -284,7 +292,7 @@ export default function ChatScreen() {
       shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
       shadowOpacity: colors.shadowOpacity, shadowRadius: 6, elevation: 3,
     },
-    bubbleAvatarText: { fontSize: 9, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: 0.3 },
+    bubbleAvatarText: { fontSize: 9, fontFamily: Fonts.extraBold, color: colors.accentText, letterSpacing: 0.3 },
     bubble: { borderRadius: 20, padding: 14 },
     bubbleUser: { backgroundColor: colors.accent, borderBottomRightRadius: 6 },
     bubbleAI: {
@@ -294,7 +302,7 @@ export default function ChatScreen() {
       shadowOpacity: colors.shadowOpacity, shadowRadius: 8, elevation: 3,
     },
     bubbleText: { fontSize: 14, lineHeight: 22 },
-    bubbleTextUser: { color: colors.textPrimary, fontFamily: Fonts.semiBold },
+    bubbleTextUser: { color: colors.accentText, fontFamily: Fonts.semiBold },
     bubbleTextAI: { color: colors.textPrimary, fontFamily: Fonts.medium },
     bubbleTime: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.medium, marginTop: 4, marginLeft: 4 },
     bubbleTimeUser: { textAlign: 'right', marginRight: 4 },
@@ -315,7 +323,7 @@ export default function ChatScreen() {
     inputArea: {
       backgroundColor: colors.surface,
       padding: 12,
-      paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+      paddingBottom: 12,
       borderTopLeftRadius: 24, borderTopRightRadius: 24,
       borderWidth: 1, borderColor: colors.cardBorder,
       shadowColor: colors.shadow, shadowOffset: { width: 0, height: -4 },
@@ -337,7 +345,7 @@ export default function ChatScreen() {
       flexShrink: 0,
     },
     sendDisabled: { backgroundColor: colors.accentBg },
-    sendIcon: { color: colors.textPrimary, fontSize: 20, fontFamily: Fonts.extraBold },
+    sendIcon: { color: colors.accentText, fontSize: 20, fontFamily: Fonts.extraBold },
 
     retryBtn: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: colors.dangerBg, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: colors.dangerBorder },
     retryText: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.danger },
@@ -483,11 +491,12 @@ export default function ChatScreen() {
               returnKeyType="send"
               blurOnSubmit
               onSubmitEditing={() => send(input)}
+              editable={!historyLoading}
             />
             <TouchableOpacity
-              style={[styles.sendBtn, (!input.trim() || loading) && styles.sendDisabled]}
+              style={[styles.sendBtn, (!input.trim() || loading || historyLoading) && styles.sendDisabled]}
               onPress={() => send(input)}
-              disabled={!input.trim() || loading}
+              disabled={!input.trim() || loading || historyLoading}
             >
               <Text style={styles.sendIcon}>↑</Text>
             </TouchableOpacity>

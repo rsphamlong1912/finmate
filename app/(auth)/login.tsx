@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert
+  StyleSheet, Alert, Image,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Fonts } from '../../constants/fonts';
-import AppIcon from '../../assets/app-icon.svg';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function LoginScreen() {
@@ -69,7 +68,7 @@ export default function LoginScreen() {
         {/* HERO */}
         <View style={styles.hero}>
           <View style={styles.logoWrap}>
-            <AppIcon width={65} height={65} />
+            <Image source={require('../../assets/app-icon.png')} style={{ width: 65, height: 65, borderRadius: 16 }} />
           </View>
           <Text style={styles.appName}>FinMate</Text>
           <Text style={styles.tagline}>
@@ -166,6 +165,7 @@ export default function LoginScreen() {
               </Text>
             </Text>
           </TouchableOpacity>
+
         </View>
 
         <Text style={styles.footer}>Made by LONGEN lab</Text>
@@ -241,11 +241,16 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+  submitText: { color: colors.accentText, fontSize: 16, fontFamily: Fonts.extraBold },
 
   switchBtn: { alignItems: 'center' },
   switchText: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium },
   switchLink: { color: colors.accent, fontFamily: Fonts.extraBold },
+
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 16 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.inputBorder },
+  dividerText: { marginHorizontal: 12, fontSize: 12, color: colors.textMuted, fontFamily: Fonts.medium },
+  appleBtn: { width: '100%', height: 52 },
 
   footer: {
     textAlign: 'center', fontSize: 12,

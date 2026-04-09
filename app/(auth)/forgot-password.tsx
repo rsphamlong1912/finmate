@@ -175,7 +175,7 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
     shadowOpacity: 0.3, shadowRadius: 12, elevation: 8,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { color: colors.textPrimary, fontSize: 16, fontFamily: Fonts.extraBold },
+  submitText: { color: colors.accentText, fontSize: 16, fontFamily: Fonts.extraBold },
 
   backBtn: { alignItems: 'center' },
   backText: { fontSize: 13, color: colors.textMuted, fontFamily: Fonts.medium },

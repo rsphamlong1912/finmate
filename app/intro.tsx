@@ -230,7 +230,7 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
     shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
-  nextText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+  nextText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.accentText },
 
   skipBtn: { alignItems: 'center', paddingVertical: 8 },
   skipText: { fontSize: 14, fontFamily: Fonts.semiBold, color: colors.textMuted },
@@ -242,7 +242,7 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
     shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
-  registerText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+  registerText: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.accentText },
 
   loginBtn: {
     borderRadius: 18, paddingVertical: 14,

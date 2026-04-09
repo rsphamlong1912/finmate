@@ -57,17 +57,17 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 
   // ── Transactions ────────────────────────────────────────────────────────────
   // Giao dịch dễ tích lũy hơn → XP vừa phải
-  { id: 'tx_10',  category: 'transactions', tier: 'bronze',  emoji: '📝', title: 'Bắt đầu ghi chép',  description: 'Ghi 10 giao dịch đầu tiên', xp: 10,  threshold: 10,  getValue: s => s.txCount },
-  { id: 'tx_50',  category: 'transactions', tier: 'silver',  emoji: '📒', title: 'Người ghi chép',    description: 'Ghi 50 giao dịch',          xp: 30,  threshold: 50,  getValue: s => s.txCount },
-  { id: 'tx_100', category: 'transactions', tier: 'gold',    emoji: '📚', title: 'Kỷ luật tài chính', description: 'Ghi 100 giao dịch',         xp: 60,  threshold: 100, getValue: s => s.txCount },
-  { id: 'tx_500', category: 'transactions', tier: 'diamond', emoji: '🏦', title: 'Nhà tài chính',     description: 'Ghi 500 giao dịch',         xp: 150, threshold: 500, getValue: s => s.txCount },
+  { id: 'tx_10',  category: 'transactions', tier: 'bronze',  emoji: '📝', title: 'Nhật ký đầu tiên',   description: 'Ghi 10 giao dịch đầu tiên', xp: 10,  threshold: 10,  getValue: s => s.txCount },
+  { id: 'tx_50',  category: 'transactions', tier: 'silver',  emoji: '📒', title: 'Thói quen hình thành', description: 'Ghi 50 giao dịch',          xp: 30,  threshold: 50,  getValue: s => s.txCount },
+  { id: 'tx_100', category: 'transactions', tier: 'gold',    emoji: '📚', title: 'Chuyên gia ghi chép', description: 'Ghi 100 giao dịch',         xp: 60,  threshold: 100, getValue: s => s.txCount },
+  { id: 'tx_500', category: 'transactions', tier: 'diamond', emoji: '🏦', title: 'Bậc thầy chi tiêu',  description: 'Ghi 500 giao dịch',         xp: 150, threshold: 500, getValue: s => s.txCount },
 
   // ── Goals ───────────────────────────────────────────────────────────────────
   // Mục tiêu cần thời gian dài + kỷ luật → XP cao
   { id: 'goal_1',  category: 'goals', tier: 'bronze',  emoji: '🎯', title: 'Mục tiêu đầu tiên', description: 'Hoàn thành 1 mục tiêu tiết kiệm',  xp: 20,  threshold: 1,  getValue: s => s.doneGoalsCount },
   { id: 'goal_3',  category: 'goals', tier: 'silver',  emoji: '🎪', title: 'Người kiên trì',    description: 'Hoàn thành 3 mục tiêu tiết kiệm',  xp: 55,  threshold: 3,  getValue: s => s.doneGoalsCount },
-  { id: 'goal_5',  category: 'goals', tier: 'gold',    emoji: '🏅', title: 'Nhà tiết kiệm',     description: 'Hoàn thành 5 mục tiêu tiết kiệm',  xp: 100, threshold: 5,  getValue: s => s.doneGoalsCount },
-  { id: 'goal_10', category: 'goals', tier: 'diamond', emoji: '💰', title: 'Tỷ phú tương lai',  description: 'Hoàn thành 10 mục tiêu tiết kiệm', xp: 210, threshold: 10, getValue: s => s.doneGoalsCount },
+  { id: 'goal_5',  category: 'goals', tier: 'gold',    emoji: '🏅', title: 'Người hiện thực hóa',   description: 'Hoàn thành 5 mục tiêu tiết kiệm',  xp: 100, threshold: 5,  getValue: s => s.doneGoalsCount },
+  { id: 'goal_10', category: 'goals', tier: 'diamond', emoji: '💰', title: 'Tương lai trong tầm tay', description: 'Hoàn thành 10 mục tiêu tiết kiệm', xp: 210, threshold: 10, getValue: s => s.doneGoalsCount },
 
 ];
 

@@ -59,6 +59,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   };
 
   const calcStreak = (sortedDates: string[], today: string) => {
+    // today phải có trong danh sách (upsert thành công) mới tính streak
+    // nếu không có today → streak = 0 (upsert thất bại hoặc dữ liệu lỗi)
+    if (!sortedDates.length || sortedDates[0] !== today) return 0;
     let streak = 0;
     let current = parseDateUTC(today);
     for (const dateStr of sortedDates) {
@@ -111,7 +114,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         .limit(365);
 
       const streak = streakDays?.length
-        ? calcStreak(streakDays.map(s => s.date).sort().reverse(), today)
+        ? calcStreak(streakDays.map(s => s.date.slice(0, 10)).sort().reverse(), today)
         : 0;
 
       const streakUpdate = { streak_count: streak, last_active_date: today, updated_at: new Date().toISOString() };
@@ -174,7 +177,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       .limit(365);
 
     const streak = streakDays?.length
-      ? calcStreak(streakDays.map(s => s.date).sort().reverse(), today)
+      ? calcStreak(streakDays.map(s => s.date.slice(0, 10)).sort().reverse(), today)
       : 0;
 
     const updated = { streak_count: streak, last_active_date: today, updated_at: new Date().toISOString() };
