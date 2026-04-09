@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, Switch, TextInput, Modal
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -127,8 +128,13 @@ export default function ProfileScreen() {
 
         {/* ── HEADER ── */}
         <View style={styles.header}>
-          <View style={styles.headerCircle} />
-          <View style={styles.headerCircle2} />
+          <LinearGradient
+            colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            pointerEvents="none"
+          />
 
           {/* Top row: avatar left + info right */}
           <View style={styles.headerTopRow}>
@@ -582,8 +588,6 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32, overflow: 'hidden',
     gap: 16, borderBottomWidth: 1, borderBottomColor: colors.cardBorder,
   },
-  headerCircle:  { position: 'absolute', top: -60, right: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: colors.orb1 },
-  headerCircle2: { position: 'absolute', bottom: -40, left: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: colors.orb2 },
 
   headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerInfo:   { flex: 1, gap: 3 },

@@ -20,6 +20,7 @@ import { useAchievements } from '../../context/AchievementsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
@@ -230,6 +231,13 @@ export default function DashboardScreen() {
 
         {/* HEADER BLOCK */}
         <View style={styles.headerBlock}>
+          <LinearGradient
+            colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            pointerEvents="none"
+          />
           {/* Greeting row */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
@@ -422,7 +430,7 @@ export default function DashboardScreen() {
               <Text style={styles.bannerHint}>Ghi lại mỗi ngày để không bỏ lỡ{'\n'}bức tranh tài chính của bạn</Text>
             </View>
             <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <StreakCalendar streakDates={streakDates} streakCount={streakCount} />
+              <StreakCalendar streakDates={streakDates} />
             </ScrollView>
           </Animated.View>
         </Animated.View>

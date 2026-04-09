@@ -278,7 +278,7 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
   },
   tabActive:     { backgroundColor: colors.accent, borderColor: colors.accent },
   tabText:       { fontSize: 12, fontFamily: Fonts.bold, color: colors.textMuted },
-  tabTextActive: { color: colors.textPrimary },
+  tabTextActive: { color: colors.accentText },
 
   scroll:        { flex: 1 },
   scrollContent: { padding: 20, paddingTop: 4, gap: 12 },

@@ -4,6 +4,7 @@ import {
   TextInput, Alert, Modal, Platform
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Fonts } from '../../constants/fonts';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useGoals } from '../../context/GoalsContext';
@@ -187,7 +188,6 @@ export default function GoalsScreen() {
       borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
       overflow: 'hidden',
     },
-    headerBubble: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: colors.accentBg },
     headerTitle: { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 4 },
     headerSub: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.medium, marginBottom: 16 },
 
@@ -323,7 +323,13 @@ export default function GoalsScreen() {
 
       {/* ── HEADER ── */}
       <View style={s.header}>
-        <View style={s.headerBubble} />
+        <LinearGradient
+          colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
         <Text style={s.headerTitle}>Mục tiêu</Text>
         <Text style={s.headerSub}>Đặt mục tiêu và theo dõi tiết kiệm</Text>
 

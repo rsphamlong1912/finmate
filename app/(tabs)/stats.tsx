@@ -10,6 +10,7 @@ import { formatVNDShort, formatVND } from '../../lib/vnd';
 import { useCategories } from '../../context/CategoriesContext';
 import { useTheme } from '../../context/ThemeContext';
 import { ExpenseCalendar } from '../../components/ExpenseCalendarModal';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 const FILTERS = ['Ngày', 'Tuần', 'Tháng', 'Tùy chỉnh'];
@@ -314,7 +315,13 @@ export default function StatsScreen() {
     <View style={styles.root}>
       {/* HEADER - fixed */}
       <View style={styles.header}>
-        <View style={styles.headerCircle} />
+        <LinearGradient
+          colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
         <Text style={styles.headerTitle}>Báo cáo chi tiêu</Text>
         <Text style={styles.headerSub}>Phân tích chi tiêu theo danh mục và thời gian</Text>
         <View style={styles.filterRow}>
@@ -748,7 +755,6 @@ export default function StatsScreen() {
 const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   header: { backgroundColor: colors.surface, paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24, overflow: 'hidden', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
-  headerCircle: { position: 'absolute', top: -50, right: -50, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(129,140,248,0.08)' },
   headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 4 },
   headerSub: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.medium, marginBottom: 16 },
   filterRow: { flexDirection: 'row', gap: 8 },
