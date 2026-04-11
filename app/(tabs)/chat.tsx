@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Animated,
@@ -13,6 +13,8 @@ import { sendMessageToClaude, buildFinancialContext, Message } from '../../lib/c
 import { supabase } from '../../lib/supabase';
 import { DEFAULT_CATEGORIES } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 
 type ChatMsg = { id: string; role: 'user' | 'assistant'; text: string; timestamp?: Date; isError?: boolean; retryText?: string; };
 
@@ -245,7 +247,7 @@ export default function ChatScreen() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const styles = StyleSheet.create({
+  const styles = useMemo(() => StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.bg, paddingBottom: Platform.OS === 'ios' ? 90 : 68 },
 
     header: {
@@ -260,10 +262,8 @@ export default function ChatScreen() {
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     avatarWrap: { position: 'relative' },
     avatarInner: {
-      width: 46, height: 46, borderRadius: 999,
-      backgroundColor: colors.accent,
+      width: 46, height: 46,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 2, borderColor: colors.accentBorder,
     },
     avatarMonogram: { fontSize: 14, fontFamily: Fonts.extraBold, color: colors.accentText, letterSpacing: 0.5 },
     avatarOnline: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: colors.success, borderWidth: 2, borderColor: colors.surface },
@@ -272,10 +272,9 @@ export default function ChatScreen() {
     statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
     statusText: { fontSize: 11, color: colors.textSecondary, fontFamily: Fonts.semiBold },
     headerBadge: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      borderWidth: 1, borderColor: colors.accentBorder,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)',
       borderRadius: 99, paddingHorizontal: 12, paddingVertical: 6,
-      backgroundColor: colors.accentBg,
+      backgroundColor: 'rgba(255,255,255,0.3)',
     },
     headerBadgeIcon: { fontSize: 10, color: colors.accent },
     headerBadgeText: { fontSize: 11, color: colors.textPrimary, fontFamily: Fonts.semiBold, letterSpacing: 0.3 },
@@ -287,24 +286,26 @@ export default function ChatScreen() {
     bubbleWrapUser: { justifyContent: 'flex-end' },
     bubbleWrapAI: { justifyContent: 'flex-start' },
     bubbleAvatar: {
-      width: 30, height: 30, borderRadius: 999,
-      backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
-      shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: colors.shadowOpacity, shadowRadius: 6, elevation: 3,
+      width: 34, height: 34, borderRadius: 17,
+      backgroundColor: colors.accent,
+      alignItems: 'center', justifyContent: 'center',
     },
+    bubbleAvatarIcon: { fontSize: 14, color: colors.accentText },
     bubbleAvatarText: { fontSize: 9, fontFamily: Fonts.extraBold, color: colors.accentText, letterSpacing: 0.3 },
-    bubble: { borderRadius: 20, padding: 14 },
-    bubbleUser: { backgroundColor: colors.accent, borderBottomRightRadius: 6 },
+    bubble: { borderRadius: 20, padding: 14, overflow: 'hidden' },
+    bubbleUser: { borderBottomRightRadius: 6 },
     bubbleAI: {
       backgroundColor: colors.inputBg, borderBottomLeftRadius: 6,
-      borderWidth: 1, borderColor: colors.cardBorder,
+      borderTopWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
+      borderTopColor: colors.cardBorder, borderRightColor: colors.cardBorder, borderBottomColor: colors.cardBorder,
+      borderLeftWidth: 3, borderLeftColor: 'rgba(255,210,0,0.5)',
       shadowColor: colors.shadow, shadowOffset: { width: 0, height: 2 },
       shadowOpacity: colors.shadowOpacity, shadowRadius: 8, elevation: 3,
     },
     bubbleText: { fontSize: 14, lineHeight: 22 },
-    bubbleTextUser: { color: colors.accentText, fontFamily: Fonts.semiBold },
+    bubbleTextUser: { color: colors.textPrimary, fontFamily: Fonts.semiBold },
     bubbleTextAI: { color: colors.textPrimary, fontFamily: Fonts.medium },
-    bubbleTime: { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.medium, marginTop: 4, marginLeft: 4 },
+    bubbleTime: { fontSize: 9, color: colors.textMuted, fontFamily: Fonts.medium, marginTop: 3, marginLeft: 4, opacity: 0.7 },
     bubbleTimeUser: { textAlign: 'right', marginRight: 4 },
 
 
@@ -321,7 +322,7 @@ export default function ChatScreen() {
     quickArrow: { fontSize: 16, color: colors.accent, fontFamily: Fonts.bold },
 
     inputArea: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
       padding: 12,
       paddingBottom: 12,
       borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -338,14 +339,14 @@ export default function ChatScreen() {
       textAlignVertical: 'top',
     },
     sendBtn: {
-      backgroundColor: colors.accent, borderRadius: 14,
+      backgroundColor: colors.surface, borderRadius: 14,
       width: 46, height: 46, alignItems: 'center', justifyContent: 'center',
       shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
       flexShrink: 0,
     },
     sendDisabled: { backgroundColor: colors.accentBg },
-    sendIcon: { color: colors.accentText, fontSize: 20, fontFamily: Fonts.extraBold },
+    sendIcon: { color: colors.textPrimary, fontSize: 20, fontFamily: Fonts.extraBold },
 
     retryBtn: { marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: colors.dangerBg, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: colors.dangerBorder },
     retryText: { fontSize: 12, fontFamily: Fonts.extraBold, color: colors.danger },
@@ -355,32 +356,37 @@ export default function ChatScreen() {
 
     historyErrBanner: { margin: 12, padding: 12, borderRadius: 14, backgroundColor: colors.dangerBg, borderWidth: 1, borderColor: colors.dangerBorder, flexDirection: 'row', alignItems: 'center', gap: 8 },
     historyErrText: { flex: 1, fontSize: 12, fontFamily: Fonts.semiBold, color: colors.danger },
-  });
+  }), [colors]);
 
   return (
     <View style={styles.root}>
       {/* HEADER */}
       <View style={styles.header}>
+        <LinearGradient
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
         <View style={styles.headerOrb1} />
         <View style={styles.headerOrb2} />
         <View style={styles.headerLeft}>
           <View style={styles.avatarWrap}>
             <View style={styles.avatarInner}>
-              <Text style={styles.avatarMonogram}>FM</Text>
+              <LottieView
+                source={{ uri: 'https://lottie.host/2fbd2f02-6dda-49f8-9d50-8f25ccdef688/nUmzUZBfbB.lottie' }}
+                autoPlay
+                loop
+                style={{ width: 46, height: 46 }}
+              />
             </View>
             <View style={styles.avatarOnline} />
           </View>
           <View>
             <Text style={styles.headerTitle}>FinMate AI</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>Đang hoạt động</Text>
-            </View>
+            <Text style={styles.statusText}>Trợ lý tài chính của bạn</Text>
           </View>
-        </View>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeIcon}>✦</Text>
-          <Text style={styles.headerBadgeText}>Trợ lý tài chính</Text>
         </View>
       </View>
 
@@ -419,7 +425,7 @@ export default function ChatScreen() {
             ]}>
               {msg.role === 'assistant' && (
                 <View style={styles.bubbleAvatar}>
-                  <Text style={styles.bubbleAvatarText}>FM</Text>
+                  <Text style={styles.bubbleAvatarIcon}>✦</Text>
                 </View>
               )}
               <View style={{ maxWidth: '75%' }}>
@@ -434,6 +440,14 @@ export default function ChatScreen() {
                     onLongPress={() => copyMsg(msg.id, msg.text)}
                     style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}
                   >
+                    {msg.role === 'user' && (
+                      <LinearGradient
+                        colors={['#FFD000', '#FFE234']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    )}
                     <Text style={[
                       styles.bubbleText,
                       msg.role === 'user' ? styles.bubbleTextUser : styles.bubbleTextAI
@@ -457,7 +471,7 @@ export default function ChatScreen() {
           {loading && (
             <View style={[styles.bubbleWrap, styles.bubbleWrapAI]}>
               <View style={styles.bubbleAvatar}>
-                <Text style={styles.bubbleAvatarText}>FM</Text>
+                <Text style={styles.bubbleAvatarIcon}>✦</Text>
               </View>
               <View style={[styles.bubble, styles.bubbleAI]}>
                 <TypingIndicator />

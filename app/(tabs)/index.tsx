@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useExpenses } from '../../context/ExpensesContext';
 import { useProfile } from '../../context/ProfileContext';
@@ -19,13 +19,13 @@ import { AchievementUnlockModal } from '../../components/AchievementUnlockModal'
 import { useAchievements } from '../../context/AchievementsContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import LottieView from 'lottie-react-native';
 
 export default function DashboardScreen() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, session } = useAuth();
   const { totalThisMonth, byCategory, expenses, loading: expensesLoading } = useExpenses();
   const { profile, streakDates, checkAndUpdateStreak, loading: profileLoading, newStreakDay, clearNewStreakDay } = useProfile();
   const { getCategoryLabel, getCategoryColor, getCategoryEmoji, loading: categoriesLoading } = useCategories();
@@ -62,10 +62,14 @@ export default function DashboardScreen() {
   const [showLoader, setShowLoader] = useState(true);
   const [timerDone, setTimerDone] = useState(false);
 
+  // Reset loader each time a new session is established (handles pre-mounted tabs after login)
   useEffect(() => {
+    if (!session?.user?.id) return;
+    setShowLoader(true);
+    setTimerDone(false);
     const timer = setTimeout(() => setTimerDone(true), 1500);
     return () => clearTimeout(timer);
-  }, []);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (timerDone && !authLoading && !profileLoading && !expensesLoading && !categoriesLoading) {
@@ -148,6 +152,11 @@ export default function DashboardScreen() {
   const topCat = sortedCats[0];
   const topCatPct = topCat && totalThisMonth > 0 ? Math.round((topCat[1] / totalThisMonth) * 100) : 0;
 
+  // End-of-month projection
+  const projectedTotal = daysElapsed > 0 ? Math.round((totalThisMonth / daysElapsed) * daysInMonth) : 0;
+  const projectedDiff = projectedTotal - budget;
+  const projectedOverBudget = budget > 0 && projectedDiff > 0;
+
   // Greeting
   const hour = now.getHours();
   const greeting = hour >= 5 && hour < 12 ? 'Chào buổi sáng' : hour >= 12 && hour < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
@@ -159,18 +168,20 @@ export default function DashboardScreen() {
 
   const dailyBudgetLeft = daysRemaining > 0 ? Math.round(remainingBudget / daysRemaining) : 0;
 
-  const slides = [
+  const slides: { icon: string; title: string; body: string; bodyNode?: React.ReactNode; accent: string; accentBg: string; accentBorder: string; cta: string; onCta: () => void }[] = [
     {
       icon: '💰',
-      title: monthPct >= 100 ? 'Đã vượt ngân sách!' : monthPct >= 80 ? 'Gần đến giới hạn!' : 'Kiểm soát tốt!',
-      body: monthPct >= 100
+      title: !budget ? 'Chưa đặt ngân sách' : monthPct >= 100 ? 'Đã vượt ngân sách!' : monthPct >= 80 ? 'Gần đến giới hạn!' : 'Kiểm soát tốt!',
+      body: !budget
+        ? 'Đặt ngân sách tháng để theo dõi chi tiêu hiệu quả hơn.'
+        : monthPct >= 100
         ? `Vượt ${formatVND(totalThisMonth - budget)}. Hãy cẩn thận chi tiêu hơn nhé!`
         : `Dùng ${monthPct}% ngân sách. Còn ${daysRemaining} ngày — mỗi ngày nên giữ dưới ${formatVND(dailyBudgetLeft)}.`,
-      accent: monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.accent,
-      accentBg: monthPct >= 100 ? 'rgba(239,68,68,0.08)' : monthPct >= 80 ? 'rgba(245,158,11,0.08)' : colors.accentBg,
-      accentBorder: monthPct >= 100 ? 'rgba(239,68,68,0.2)' : monthPct >= 80 ? 'rgba(245,158,11,0.2)' : colors.accentBorder,
-      cta: 'Xem báo cáo →',
-      onCta: () => router.push('/(tabs)/stats'),
+      accent: !budget ? colors.textMuted : monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.accent,
+      accentBg: !budget ? 'rgba(92,61,0,0.05)' : monthPct >= 100 ? 'rgba(239,68,68,0.08)' : monthPct >= 80 ? 'rgba(245,158,11,0.08)' : colors.accentBg,
+      accentBorder: !budget ? 'rgba(92,61,0,0.1)' : monthPct >= 100 ? 'rgba(239,68,68,0.2)' : monthPct >= 80 ? 'rgba(245,158,11,0.2)' : colors.accentBorder,
+      cta: !budget ? 'Đặt ngân sách →' : 'Xem báo cáo →',
+      onCta: !budget ? () => router.push('/(tabs)/profile') : () => router.push('/(tabs)/stats'),
     },
     {
       icon: topCat ? getCategoryEmoji(topCat[0]) : '📊',
@@ -178,6 +189,12 @@ export default function DashboardScreen() {
       body: topCat
         ? `${getCategoryLabel(topCat[0])} chiếm ${topCatPct}% tổng chi tiêu tháng này (${formatVND(topCat[1])}).`
         : 'Chưa có giao dịch nào tháng này. Hãy thêm giao dịch đầu tiên!',
+      bodyNode: topCat ? (
+        <Text style={{ fontSize: 12, color: '#5C3D00', fontFamily: 'System', lineHeight: 18 }}>
+          <Text style={{ fontFamily: Fonts.extraBold }}>{getCategoryLabel(topCat[0])}</Text>
+          {` chiếm ${topCatPct}% tổng chi tiêu tháng này (${formatVND(topCat[1])}).`}
+        </Text>
+      ) : undefined,
       accent: '#f59e0b',
       accentBg: 'rgba(245,158,11,0.08)',
       accentBorder: 'rgba(245,158,11,0.2)',
@@ -199,14 +216,18 @@ export default function DashboardScreen() {
       onCta: () => setShowStreakModal(true),
     },
     {
-      icon: '✨',
-      title: 'Hỏi FinMate AI',
-      body: 'Phân tích chi tiêu cá nhân hoá, gợi ý tiết kiệm và trả lời mọi câu hỏi tài chính của bạn.',
-      accent: colors.accent,
-      accentBg: colors.accentBg,
-      accentBorder: colors.accentBorder,
-      cta: 'Chat ngay →',
-      onCta: () => router.push('/(tabs)/chat'),
+      icon: projectedTotal === 0 ? '📅' : projectedOverBudget ? '⚠️' : '📈',
+      title: projectedTotal === 0 ? 'Dự báo cuối tháng' : projectedOverBudget ? 'Dự báo vượt ngân sách' : 'Dự báo cuối tháng',
+      body: projectedTotal === 0
+        ? 'Chưa có đủ dữ liệu để dự báo. Hãy ghi lại chi tiêu mỗi ngày!'
+        : projectedOverBudget
+        ? `Với tốc độ hiện tại, cuối tháng bạn sẽ tiêu khoảng ${formatVND(projectedTotal)} — vượt ngân sách ${formatVND(projectedDiff)}.`
+        : `Với tốc độ hiện tại, cuối tháng bạn sẽ tiêu khoảng ${formatVND(projectedTotal)} — trong ngân sách 👍`,
+      accent: projectedTotal === 0 ? colors.accent : projectedOverBudget ? '#ef4444' : '#22c55e',
+      accentBg: projectedTotal === 0 ? colors.accentBg : projectedOverBudget ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+      accentBorder: projectedTotal === 0 ? colors.accentBorder : projectedOverBudget ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)',
+      cta: 'Xem báo cáo →',
+      onCta: () => router.push('/(tabs)/stats'),
     },
   ];
 
@@ -227,69 +248,81 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      {/* HEADER BLOCK - fixed, outside ScrollView */}
+      <View style={styles.headerBlock}>
+        {/* Gradient overlay */}
+        <LinearGradient
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
+        {/* Decorative orbs */}
+        <View style={styles.orb1} pointerEvents="none" />
+        <View style={styles.orb2} pointerEvents="none" />
+        <View style={styles.orb3} pointerEvents="none" />
+        {/* Lottie illustration */}
+        <LottieView
+          source={{ uri: 'https://lottie.host/cdc00cb3-ec98-432d-b84c-797e4769cd25/yxACP472EC.lottie' }}
+          autoPlay
+          loop
+          style={styles.lottieHero}
+        />
+        {/* Greeting row */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{greeting}, {userName} {greetingEmoji}</Text>
+            <Text style={styles.monthLabel}>{monthLabel}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={() => router.push('/profile')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-        {/* HEADER BLOCK */}
-        <View style={styles.headerBlock}>
-          <LinearGradient
-            colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            pointerEvents="none"
-          />
-          {/* Greeting row */}
-          <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>{greeting}, {userName} {greetingEmoji}</Text>
-              <Text style={styles.monthLabel}>{monthLabel}</Text>
-            </View>
+        {/* TOTAL SPENDING */}
+        <View style={styles.spendingSection}>
+          <Text style={styles.spendingLabel}>Tổng chi tiêu</Text>
+          <Text style={styles.spendingAmount}>{formatVND(totalThisMonth)}</Text>
+
+          {/* Streak badge */}
+          {profile?.streak_enabled && streakCount > 0 && (
             <TouchableOpacity
-              style={styles.settingsBtn}
-              onPress={() => router.push('/profile')}
+              style={styles.streakBadge}
+              onPress={() => setShowStreakModal(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings-outline" size={20} color={colors.textSecondary} />
+              <Text style={styles.streakBadgeText}>🔥 {streakCount} ngày streak!</Text>
+              <Ionicons name="chevron-forward" size={13} color="rgba(255,255,255,0.7)" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* BUDGET PROGRESS */}
+        <View style={styles.budgetSection}>
+          <View style={styles.budgetLabelRow}>
+            <Text style={styles.budgetLabel}>Ngân sách tháng</Text>
+            <Text style={styles.budgetPct}>{monthPct}%</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${Math.min(monthPct, 100)}%` as any, backgroundColor: monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.textPrimary }]} />
+          </View>
+          <View style={styles.budgetBottomRow}>
+            <Text style={styles.remainingText}>
+              Còn lại {formatVND(remainingBudget)} 💪
+            </Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/stats')} activeOpacity={0.7}>
+              <Text style={styles.reportLink}>Xem báo cáo →</Text>
             </TouchableOpacity>
           </View>
-
-          {/* TOTAL SPENDING */}
-          <View style={styles.spendingSection}>
-            <Text style={styles.spendingLabel}>Tổng chi tiêu</Text>
-            <Text style={styles.spendingAmount}>{formatVND(totalThisMonth)}</Text>
-
-            {/* Streak badge */}
-            {profile?.streak_enabled && streakCount > 0 && (
-              <TouchableOpacity
-                style={styles.streakBadge}
-                onPress={() => setShowStreakModal(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.streakBadgeText}>🔥 {streakCount} ngày streak!</Text>
-                <Ionicons name="chevron-forward" size={13} color="rgba(255,255,255,0.7)" />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* BUDGET PROGRESS */}
-          <View style={styles.budgetSection}>
-            <View style={styles.budgetLabelRow}>
-              <Text style={styles.budgetLabel}>Ngân sách tháng</Text>
-              <Text style={styles.budgetPct}>{monthPct}%</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${Math.min(monthPct, 100)}%` as any, backgroundColor: monthPct >= 100 ? '#ef4444' : monthPct >= 80 ? '#f59e0b' : colors.accent }]} />
-            </View>
-            <View style={styles.budgetBottomRow}>
-              <Text style={styles.remainingText}>
-                Còn lại {formatVND(remainingBudget)} 💪
-              </Text>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/stats')} activeOpacity={0.7}>
-                <Text style={styles.reportLink}>Xem báo cáo →</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 20, paddingBottom: 120 }}>
 
         {/* INSIGHT SLIDER */}
         <View style={styles.sliderWrap}>
@@ -318,7 +351,7 @@ export default function DashboardScreen() {
                   <Text style={styles.insightIcon}>{slide.icon}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.insightTitle, { color: slide.accent }]}>{slide.title}</Text>
-                    <Text style={styles.insightBody}>{slide.body}</Text>
+                    {slide.bodyNode ?? <Text style={styles.insightBody}>{slide.body}</Text>}
                   </View>
                 </View>
                 <View style={styles.insightFooter}>
@@ -438,19 +471,13 @@ export default function DashboardScreen() {
 
       {/* Chat FAB */}
       <View style={styles.fabWrap} pointerEvents="box-none">
-        <Animated.View style={[styles.fabPulseRing, {
-          transform: [{ scale: chatPulse1.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
-          opacity: chatPulse1.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.2, 0] }),
-        }]} />
-        <Animated.View style={[styles.fabPulseRing, {
-          transform: [{ scale: chatPulse2.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }) }],
-          opacity: chatPulse2.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.5, 0.2, 0] }),
-        }]} />
         <TouchableOpacity style={styles.fabShadow} onPress={() => router.push('/(tabs)/chat')} activeOpacity={0.85}>
-          <BlurView intensity={75} tint="light" style={styles.fab}>
-            <View style={styles.fabOverlay} />
-            <Ionicons name="sparkles" size={22} color="#fff" style={{ zIndex: 1 }} />
-          </BlurView>
+          <LottieView
+            source={{ uri: 'https://lottie.host/2fbd2f02-6dda-49f8-9d50-8f25ccdef688/nUmzUZBfbB.lottie' }}
+            autoPlay
+            loop
+            style={{ width: 80, height: 80 }}
+          />
         </TouchableOpacity>
       </View>
     </View>
@@ -460,6 +487,44 @@ export default function DashboardScreen() {
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.bg },
+
+    // LOTTIE
+    lottieHero: {
+      position: 'absolute',
+      width: 95,
+      height: 160,
+      right: 8,
+      top: 170
+    },
+
+    // DECORATIVE ORBS
+    orb1: {
+      position: 'absolute',
+      width: 180,
+      height: 180,
+      borderRadius: 90,
+      backgroundColor: 'rgba(255,255,255,0.18)',
+      top: -60,
+      right: -40,
+    },
+    orb2: {
+      position: 'absolute',
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      top: 30,
+      right: 80,
+    },
+    orb3: {
+      position: 'absolute',
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: 'rgba(180,120,0,0.12)',
+      bottom: 20,
+      left: -20,
+    },
 
     // HEADER
     headerBlock: {
@@ -471,7 +536,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       shadowOpacity: colors.shadowOpacity,
       shadowRadius: 16,
       elevation: 6,
-      marginBottom: 20,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
@@ -580,7 +645,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     progressTrack: {
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.divider,
+      backgroundColor: 'rgba(255,255,255,0.4)',
       overflow: 'hidden',
       marginBottom: 10,
     },
@@ -601,7 +666,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     reportLink: {
       fontSize: 13,
       fontFamily: Fonts.semiBold,
-      color: colors.accent,
+      color: colors.textPrimary,
     },
 
     // INSIGHT SLIDER
@@ -692,7 +757,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     txHeaderLink: {
       fontSize: 13,
       fontFamily: Fonts.semiBold,
-      color: colors.accent,
+      color: colors.textPrimary,
     },
     dayLabel: {
       fontSize: 12,
@@ -703,7 +768,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       marginTop: 2,
     },
     txGroup: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.cardBorder,
       marginHorizontal: 16,
       marginBottom: 12,
       borderRadius: 16,
@@ -745,7 +812,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     txAmount: {
       fontSize: 14,
       fontFamily: Fonts.extraBold,
-      color: colors.textPrimary,
+      color: colors.danger,
     },
 
     emptyMsg: {
@@ -760,13 +827,13 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     // MODALS
     modalOverlay: { flex: 1, backgroundColor: 'rgba(10,4,30,0.65)', justifyContent: 'flex-end', flexDirection: 'column' },
     modalSheet: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
       borderTopLeftRadius: 28, borderTopRightRadius: 28,
       maxHeight: '88%', paddingBottom: 36, overflow: 'hidden',
       borderWidth: 1, borderColor: colors.cardBorder,
     },
     modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder, alignSelf: 'center', position: 'absolute', top: 10, zIndex: 10 },
-    modalBanner: { backgroundColor: colors.surface, paddingTop: 20, paddingBottom: 16, alignItems: 'center', overflow: 'hidden' },
+    modalBanner: { backgroundColor: colors.card, paddingTop: 20, paddingBottom: 16, alignItems: 'center', overflow: 'hidden' },
     bannerOrb1: { position: 'absolute', top: -50, right: -50, width: 150, height: 150, borderRadius: 75, backgroundColor: colors.orb1 },
     bannerOrb2: { position: 'absolute', bottom: -40, left: -40, width: 110, height: 110, borderRadius: 55, backgroundColor: colors.orb2 },
     bannerCloseBtn: { position: 'absolute', top: 14, right: 16, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
@@ -781,7 +848,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     fabWrap: {
       position: 'absolute',
       bottom: 100,
-      right: 20,
+      right: 5,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -793,9 +860,9 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
       backgroundColor: 'rgba(245,158,11,0.6)',
     },
     fabShadow: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
+      width: 80,
+      height: 80,
+      borderRadius: 40,
       shadowColor: '#b45309',
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4,
@@ -813,7 +880,23 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
     fabOverlay: {
       position: 'absolute',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(245,158,11,0.75)',
+      backgroundColor: 'rgba(255,255,255,0.3)',
+    },
+    fabPill: {
+      position: 'absolute',
+      bottom: 6,
+      right: 0,
+      backgroundColor: 'rgba(255,255,255,0.45)',
+      borderRadius: 99,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderWidth: 0.5,
+      borderColor: 'rgba(255,255,255,0.6)',
+    },
+    fabPillText: {
+      fontSize: 8,
+      fontFamily: Fonts.bold,
+      color: colors.textPrimary,
     },
   });
 }

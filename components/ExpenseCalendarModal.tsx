@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, Dimensions } from 'react-native';
 import { Fonts } from '../constants/fonts';
 import { useTheme } from '../context/ThemeContext';
@@ -122,6 +122,11 @@ export function ExpenseCalendar({ fixedYear, fixedMonth, cellWidth }: CalendarPr
   const [viewYear, setViewYear] = useState(fixedYear ?? now.getFullYear());
   const [viewMonth, setViewMonth] = useState(fixedMonth ?? now.getMonth());
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (fixedYear !== undefined) setViewYear(fixedYear);
+    if (fixedMonth !== undefined) { setViewMonth(fixedMonth); setSelectedDay(null); }
+  }, [fixedYear, fixedMonth]);
 
   const hasNav = fixedYear === undefined;
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
@@ -308,7 +313,7 @@ const makeSharedStyles = (colors: ReturnType<typeof import('../context/ThemeCont
 
   // Day detail modal
   dayModalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
-  dayModal: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingBottom: 34, maxHeight: '55%', borderTopWidth: 1, borderTopColor: colors.divider },
+  dayModal: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingBottom: 34, maxHeight: '55%', borderTopWidth: 1, borderTopColor: colors.divider },
   dayModalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.inputBorder, alignSelf: 'center', marginTop: 10, marginBottom: 14 },
   dayModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   dayModalDate: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary },

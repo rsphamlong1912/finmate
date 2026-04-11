@@ -22,7 +22,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'transport',     name: 'Di chuyển', emoji: '🚗', color: '#0288D1', is_default: true },
   { id: 'shopping',      name: 'Mua sắm',   emoji: '🛍', color: '#E91E63', is_default: true },
   { id: 'bills',         name: 'Hóa đơn',   emoji: '🧾', color: '#FFC107', is_default: true },
-  { id: 'health',        name: 'Sức khỏe',  emoji: '💊', color: '#4CAF50', is_default: true },
+  { id: 'health',        name: 'Sức khỏe',  emoji: '💊', color: '#1D9E75', is_default: true },
   { id: 'entertainment', name: 'Giải trí',  emoji: '🎮', color: '#9C27B0', is_default: true },
   { id: 'other',         name: 'Khác',      emoji: '📦', color: '#607D8B', is_default: true },
 ];
@@ -60,7 +60,7 @@ export const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   transport:     '#0288D1',
   shopping:      '#E91E63',
   bills:         '#FFC107',
-  health:        '#4CAF50',
+  health:        '#1D9E75',
   entertainment: '#9C27B0',
   other:         '#607D8B',
 };

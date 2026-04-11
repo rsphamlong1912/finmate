@@ -11,6 +11,7 @@ type ExpensesContextType = {
   addExpense: (data: { amount: number; category: ExpenseCategory; note?: string }) => Promise<{ error: any }>;
   updateExpense: (id: string, data: { amount: number; category: ExpenseCategory; note?: string; created_at?: string }) => Promise<{ error: any }>;
   deleteExpense: (id: string) => Promise<void>;
+  reassignCategory: (fromId: string, toId: string) => Promise<{ error: any }>;
   refetch: () => Promise<void>;
 };
 
@@ -90,6 +91,17 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const reassignCategory = async (fromId: string, toId: string) => {
+    setExpenses(prev => prev.map(e => e.category === fromId ? { ...e, category: toId } : e));
+    const { error } = await supabase
+      .from('expenses')
+      .update({ category: toId })
+      .eq('user_id', user!.id)
+      .eq('category', fromId);
+    if (error) { fetchExpenses(); return { error }; }
+    return { error: null };
+  };
+
   const deleteExpense = async (id: string) => {
     const backup = expenses.find(e => e.id === id);
     setExpenses(prev => prev.filter(e => e.id !== id));
@@ -104,7 +116,7 @@ export function ExpensesProvider({ children }: { children: ReactNode }) {
   return (
     <ExpensesContext.Provider value={{
       expenses, totalThisMonth, byCategory, loading,
-      addExpense, updateExpense, deleteExpense, refetch: fetchExpenses,
+      addExpense, updateExpense, deleteExpense, reassignCategory, refetch: fetchExpenses,
     }}>
       {children}
     </ExpensesContext.Provider>

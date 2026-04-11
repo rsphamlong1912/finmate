@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { markIntroDone } from './_layout';
 import { Fonts } from '../constants/fonts';
 import Slide1 from '../assets/intro/slide1.svg';
 import { useTheme } from '../context/ThemeContext';
@@ -60,7 +59,6 @@ export default function IntroScreen() {
 
   const markDoneAndGo = async (signup: boolean) => {
     await AsyncStorage.setItem(INTRO_DONE_KEY, 'true');
-    markIntroDone();
     if (signup) {
       router.replace('/(auth)/register');
     } else {

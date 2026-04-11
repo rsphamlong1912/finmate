@@ -37,23 +37,23 @@ export const DarkTheme = {
 
 export const LightTheme = {
   // Backgrounds
-  bg:           '#F0F2F5',
-  surface:      '#FFFFFF',
+  bg:           '#FFFFFF',
+  surface:      '#FFE234',
   card:         '#FFFFFF',
   cardBorder:   'rgba(0,0,0,0.06)',
   inputBg:      '#FFFFFF',
-  inputBorder:  'rgba(61,107,53,0.2)',
+  inputBorder:  'rgba(180,130,0,0.25)',
 
   // Text
-  textPrimary:   '#1a1a2e',
-  textSecondary: 'rgba(26,26,46,0.55)',
-  textMuted:     'rgba(26,26,46,0.38)',
+  textPrimary:   '#5C3D00',
+  textSecondary: 'rgba(92,61,0,0.65)',
+  textMuted:     'rgba(92,61,0,0.4)',
 
-  // Accent (green — matches home screen)
-  accent:       '#3D6B35',
-  accentText:   '#ffffff',
-  accentBg:     'rgba(61,107,53,0.1)',
-  accentBorder: 'rgba(61,107,53,0.25)',
+  // Accent (yellow — matches header)
+  accent:       '#FFE234',
+  accentText:   '#5C3D00',
+  accentBg:     'rgba(255,226,52,0.15)',
+  accentBorder: 'rgba(255,226,52,0.5)',
 
   // Semantic
   divider:     'rgba(0,0,0,0.06)',
@@ -64,12 +64,12 @@ export const LightTheme = {
   warning:     '#f59e0b',
 
   // Shadow
-  shadow:        '#000',
-  shadowOpacity: 0.07,
+  shadow:        '#5C3D00',
+  shadowOpacity: 0.1,
 
   // Orb / decorative
-  orb1: 'rgba(61,107,53,0.14)',
-  orb2: 'rgba(45,90,39,0.08)',
+  orb1: 'rgba(255,210,0,0.3)',
+  orb2: 'rgba(200,150,12,0.15)',
 };
 
 export type AppTheme = typeof DarkTheme;

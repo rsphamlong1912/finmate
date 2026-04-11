@@ -71,12 +71,22 @@ export function StreakCalendar({ streakDates }: Props) {
     <View style={styles.container}>
       {/* Stats header */}
       <View style={styles.statsHeader}>
-        <Text style={styles.statMain}>
-          {activeDays} / {daysElapsed} ngày  ·  {pct}%
-        </Text>
-        <Text style={styles.statSub}>
-          🔥 {longestStreak} ngày streak dài nhất
-        </Text>
+        <View style={styles.statRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{activeDays}</Text>
+            <Text style={styles.statLabel}>ngày ghi chép</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{pct}%</Text>
+            <Text style={styles.statLabel}>tỉ lệ năm nay</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>🔥 {longestStreak}</Text>
+            <Text style={styles.statLabel}>streak dài nhất</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -139,16 +149,30 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
     statsHeader: {
       marginBottom: 14,
     },
-    statMain: {
-      fontSize: 15,
+    statRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    statBox: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 3,
+    },
+    statValue: {
+      fontSize: 16,
       fontFamily: Fonts.extraBold,
       color: colors.textPrimary,
-      marginBottom: 4,
     },
-    statSub: {
-      fontSize: 12,
+    statLabel: {
+      fontSize: 10,
       fontFamily: Fonts.medium,
-      color: colors.accent,
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    statDivider: {
+      width: 1,
+      height: 32,
+      backgroundColor: colors.divider,
     },
 
     divider: {

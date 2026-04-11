@@ -16,10 +16,10 @@ const TIER_GLOW: Record<string, string> = {
 };
 
 const TIER_BG: Record<string, string> = {
-  bronze:  '#1c1000',
-  silver:  '#0d1117',
-  gold:    '#1a1200',
-  diamond: '#0f0a1e',
+  bronze:  '#FFFBF0',
+  silver:  '#F8F9FB',
+  gold:    '#FFFDF0',
+  diamond: '#F8F8FF',
 };
 
 type Props = {
@@ -155,8 +155,8 @@ export function AchievementUnlockModal({ visible, achievement, onClose }: Props)
 
 const styles = StyleSheet.create({
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(5, 2, 20, 0.92)',
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(92, 61, 0, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
@@ -217,14 +217,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: Fonts.extraBold,
-    color: '#fff',
+    color: '#5C3D00',
     textAlign: 'center',
     marginBottom: 10,
   },
   desc: {
     fontSize: 14,
     fontFamily: Fonts.medium,
-    color: 'rgba(220,210,255,0.7)',
+    color: 'rgba(92,61,0,0.6)',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
@@ -241,6 +241,6 @@ const styles = StyleSheet.create({
   btnText: {
     fontSize: 15,
     fontFamily: Fonts.extraBold,
-    color: '#fff',
+    color: '#5C3D00',
   },
 });

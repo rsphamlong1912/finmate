@@ -124,79 +124,81 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
+      {/* ── HEADER - fixed, outside ScrollView ── */}
+      <View style={styles.header}>
+        <LinearGradient
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
+        <View style={styles.orb1} pointerEvents="none" />
+        <View style={styles.orb2} pointerEvents="none" />
+        <View style={styles.orb3} pointerEvents="none" />
+
+        {/* Top row: avatar left + info right */}
+        <View style={styles.headerTopRow}>
+          {/* Avatar */}
+          <View style={styles.avatarWrap}>
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelBadgeEmoji}>{level.emoji}</Text>
+            </View>
+          </View>
+
+          {/* Info */}
+          <View style={styles.headerInfo}>
+            <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
+            <Text style={styles.email} numberOfLines={1}>{user?.email}</Text>
+            <View style={styles.levelPill}>
+              <Text style={styles.levelPillText}>{level.label}</Text>
+            </View>
+          </View>
+
+          {/* Edit button */}
+          <TouchableOpacity
+            style={styles.editNameBtn}
+            onPress={() => { setNameInput(profile?.display_name ?? ''); setShowNameModal(true); }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.editNameText}>✎</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* XP bar full width */}
+        <View style={styles.xpWrap}>
+          <View style={styles.xpRow}>
+            <Text style={styles.xpLevelLabel}>{totalXP} XP</Text>
+            <Text style={styles.xpTotal}>{level.next ? `còn ${level.next - totalXP} XP lên cấp` : 'Cấp tối đa'}</Text>
+          </View>
+          <View style={styles.xpTrack}>
+            <View style={[styles.xpFill, { width: `${levelProgress * 100}%` as any }]} />
+          </View>
+        </View>
+      </View>
+
+      {/* ── STATS ── */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statNum}>{formatVND(totalThisMonth)}</Text>
+          <Text style={styles.statLabel}>Chi tiêu tháng này</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statCard}>
+          <Text style={styles.statNum}>{expenses.length}</Text>
+          <Text style={styles.statLabel}>Giao dịch</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statCard}>
+          <Text style={styles.statNum}>🔥 {streakCount}</Text>
+          <Text style={styles.statLabel}>Ngày streak</Text>
+        </View>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* ── HEADER ── */}
-        <View style={styles.header}>
-          <LinearGradient
-            colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            pointerEvents="none"
-          />
-
-          {/* Top row: avatar left + info right */}
-          <View style={styles.headerTopRow}>
-            {/* Avatar */}
-            <View style={styles.avatarWrap}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>{initials}</Text>
-              </View>
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeEmoji}>{level.emoji}</Text>
-              </View>
-            </View>
-
-            {/* Info */}
-            <View style={styles.headerInfo}>
-              <Text style={styles.displayName} numberOfLines={1}>{displayName}</Text>
-              <Text style={styles.email} numberOfLines={1}>{user?.email}</Text>
-              <View style={styles.levelPill}>
-                <Text style={styles.levelPillText}>{level.label}</Text>
-              </View>
-            </View>
-
-            {/* Edit button */}
-            <TouchableOpacity
-              style={styles.editNameBtn}
-              onPress={() => { setNameInput(profile?.display_name ?? ''); setShowNameModal(true); }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.editNameText}>✎</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* XP bar full width */}
-          <View style={styles.xpWrap}>
-            <View style={styles.xpRow}>
-              <Text style={styles.xpLevelLabel}>{totalXP} XP</Text>
-              <Text style={styles.xpTotal}>{level.next ? `còn ${level.next - totalXP} XP lên cấp` : 'Cấp tối đa'}</Text>
-            </View>
-            <View style={styles.xpTrack}>
-              <View style={[styles.xpFill, { width: `${levelProgress * 100}%` as any }]} />
-            </View>
-          </View>
-        </View>
-
-        {/* ── STATS ── */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{formatVND(totalThisMonth)}</Text>
-            <Text style={styles.statLabel}>Chi tiêu tháng này</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>{expenses.length}</Text>
-            <Text style={styles.statLabel}>Giao dịch</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCard}>
-            <Text style={styles.statNum}>🔥 {streakCount}</Text>
-            <Text style={styles.statLabel}>Ngày streak</Text>
-          </View>
-        </View>
-
         <View style={styles.body}>
 
           {/* ── ACHIEVEMENTS ── */}
@@ -582,6 +584,9 @@ export default function ProfileScreen() {
 function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  orb1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.18)', top: -60, right: -40 },
+  orb2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.12)', top: 30, right: 80 },
+  orb3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(180,120,0,0.12)', bottom: 20, left: -20 },
 
   header: {
     backgroundColor: colors.surface, paddingTop: 56, paddingBottom: 28, paddingHorizontal: 20,
@@ -596,15 +601,15 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   editNameText: { fontSize: 14, color: colors.textSecondary },
 
   avatarWrap:   { position: 'relative' },
-  avatarCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.accentBg, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: colors.accentBorder },
+  avatarCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(92,61,0,0.2)' },
   avatarText:   { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textPrimary },
   levelBadge:   { position: 'absolute', bottom: -3, right: -3, width: 22, height: 22, borderRadius: 11, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.accentBorder },
   levelBadgeEmoji: { fontSize: 12 },
 
   displayName: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
   email:       { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.medium },
-  levelPill:   { alignSelf: 'flex-start', backgroundColor: colors.accentBg, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: colors.accentBorder, marginTop: 2 },
-  levelPillText: { fontSize: 11, fontFamily: Fonts.bold, color: colors.accent },
+  levelPill:   { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(92,61,0,0.2)', marginTop: 2 },
+  levelPillText: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textPrimary },
 
   xpWrap:      { gap: 5 },
   xpRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -612,13 +617,14 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   xpTotal:     { fontSize: 10, color: colors.textMuted, fontFamily: Fonts.semiBold },
   xpBarWrap:   {},
   xpNextText:  {},
-  xpTrack:     { height: 4, backgroundColor: colors.divider, borderRadius: 99, overflow: 'hidden' },
-  xpFill:      { height: 4, backgroundColor: colors.accent, borderRadius: 99 },
+  xpTrack:     { height: 4, backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: 99, overflow: 'hidden' },
+  xpFill:      { height: 4, backgroundColor: colors.textPrimary, borderRadius: 99 },
 
   statsRow: {
     flexDirection: 'row', marginHorizontal: 20, marginTop: -18, borderRadius: 20,
     paddingVertical: 16, zIndex: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.cardBorder,
     shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1, shadowRadius: 12, elevation: 4,
   },
@@ -633,15 +639,15 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sectionTitle:   { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 12 },
   sectionTitleRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  sectionBadge:   { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent, backgroundColor: colors.accentBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, borderWidth: 1, borderColor: colors.accentBorder },
+  sectionBadge:   { fontSize: 12, fontFamily: Fonts.bold, color: colors.textPrimary, backgroundColor: 'rgba(92,61,0,0.08)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, borderWidth: 1, borderColor: 'rgba(92,61,0,0.15)' },
   sectionArrow:   { fontSize: 18, color: colors.textMuted, fontFamily: Fonts.bold },
   achieveCard:         { backgroundColor: colors.card, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: colors.cardBorder },
   achieveCardFooter:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.cardBorder, gap: 4 },
-  achieveCardFooterText: { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent },
-  achieveCardFooterArrow: { fontSize: 16, color: colors.accent, fontFamily: Fonts.bold },
+  achieveCardFooterText: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textPrimary },
+  achieveCardFooterArrow: { fontSize: 16, color: colors.textPrimary, fontFamily: Fonts.bold },
 
-  infoBtn:        { backgroundColor: colors.accentBg, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: colors.accentBorder },
-  infoBtnText:    { fontSize: 11, fontFamily: Fonts.bold, color: colors.accent },
+  infoBtn:        { backgroundColor: 'rgba(92,61,0,0.08)', borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: 'rgba(92,61,0,0.15)' },
+  infoBtnText:    { fontSize: 11, fontFamily: Fonts.bold, color: colors.textPrimary },
 
   infoSheet:       { flex: 1, backgroundColor: colors.bg },
 
@@ -671,7 +677,7 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   infoFlowStep:   { alignItems: 'center', gap: 6, flex: 1 },
   infoFlowIcon:   { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.accentBg, alignItems: 'center', justifyContent: 'center' },
   infoFlowLabel:  { fontSize: 9, fontFamily: Fonts.bold, color: colors.textSecondary, textAlign: 'center', lineHeight: 13 },
-  infoFlowArrow:  { fontSize: 16, color: colors.accent, fontFamily: Fonts.bold, marginBottom: 14, paddingHorizontal: 2 },
+  infoFlowArrow:  { fontSize: 16, color: colors.textPrimary, fontFamily: Fonts.bold, marginBottom: 14, paddingHorizontal: 2 },
 
   infoTierGrid:   { flexDirection: 'row', gap: 8 },
   infoTierCard:   { flex: 1, alignItems: 'center', borderRadius: 14, paddingVertical: 12, gap: 3 },
@@ -698,12 +704,12 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   budgetSummaryLabel: { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.semiBold, marginBottom: 2 },
   budgetSummaryAmt:   { fontSize: 20, fontFamily: Fonts.extraBold, color: colors.textPrimary },
   budgetSummaryRight: { alignItems: 'flex-end' },
-  budgetSummaryPct:   { fontSize: 20, fontFamily: Fonts.extraBold, color: colors.accent },
+  budgetSummaryPct:   { fontSize: 20, fontFamily: Fonts.extraBold, color: colors.textPrimary },
   budgetSummaryUsed:  { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.semiBold },
   budgetTrack:   { height: 6, backgroundColor: colors.divider, borderRadius: 99, marginBottom: 6, overflow: 'hidden' },
   budgetFill:    { height: 6, borderRadius: 99 },
   budgetRemain:  { fontSize: 11, color: colors.textMuted, fontFamily: Fonts.semiBold },
-  budgetEditHint:{ fontSize: 12, color: colors.accent, fontFamily: Fonts.bold },
+  budgetEditHint:{ fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.bold },
 
   settingCard:    { backgroundColor: colors.card, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: colors.cardBorder },
   settingRow:     { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
@@ -730,22 +736,22 @@ function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
   modalTitle:  { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
   modalCancel: { fontSize: 15, color: colors.textSecondary, fontFamily: Fonts.semiBold },
-  modalSave:   { fontSize: 15, color: colors.accent, fontFamily: Fonts.extraBold },
+  modalSave:   { fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.extraBold },
 
-  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent, marginBottom: 8 },
+  inputLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 8 },
   nameInput:  { backgroundColor: colors.inputBg, borderRadius: 16, padding: 16, fontSize: 18, color: colors.textPrimary, fontFamily: Fonts.bold, borderWidth: 1, borderColor: colors.inputBorder },
 
   pillsRow: { flexDirection: 'row', gap: 7, marginBottom: 14 },
   pill:     { flex: 1, backgroundColor: colors.card, borderRadius: 99, paddingVertical: 9, alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder },
   pillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  pillText:   { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
-  pillTextActive: { color: '#fff' },
+  pillText:   { fontSize: 13, fontFamily: Fonts.bold, color: colors.textPrimary },
+  pillTextActive: { color: colors.textPrimary },
   customRow:        { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: colors.cardBorder },
   customRowActive:  { borderColor: colors.accent, backgroundColor: colors.accentBg },
   customInput:      { flex: 1, fontSize: 14, fontFamily: Fonts.bold, color: colors.textPrimary, padding: 0 },
   customCur:        { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.bold },
-  customPreviewInline: { fontSize: 12, color: colors.accent, fontFamily: Fonts.bold },
-  customSaveBtn:    { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
-  customSaveText:   { fontSize: 12, fontFamily: Fonts.extraBold, color: '#fff' },
+  customPreviewInline: { fontSize: 12, color: colors.textPrimary, fontFamily: Fonts.bold },
+  customSaveBtn:    { backgroundColor: colors.textPrimary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
+  customSaveText:   { fontSize: 12, fontFamily: Fonts.extraBold, color: '#FFE234' },
   });
 }

@@ -8,6 +8,7 @@ import {
   AchievementCategory, AchievementDef,
 } from '../lib/achievements';
 import { useTheme } from '../context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const TABS: Array<{ key: AchievementCategory | 'all'; label: string }> = [
   { key: 'all',          label: 'Tất cả'       },
@@ -127,14 +128,14 @@ const makePathStyles = (colors: ReturnType<typeof import('../context/ThemeContex
   labelRow:    { flexDirection: 'row', alignItems: 'flex-start', marginTop: 6 },
   labelOuter:  { flex: 1 },
   labelItem:   { width: NODE, alignItems: 'center', gap: 2 },
-  nodeLabel:   { fontSize: 7, fontFamily: Fonts.semiBold, color: colors.textMuted, textAlign: 'center', width: 72 },
-  nodeXP:      { fontSize: 8, fontFamily: Fonts.extraBold, color: colors.textPrimary, opacity: 0.85 },
+  nodeLabel:   { fontSize: 7, fontFamily: Fonts.semiBold, color: colors.textPrimary, textAlign: 'center', width: 72 },
+  nodeXP:      { fontSize: 8, fontFamily: Fonts.extraBold, color: colors.textPrimary },
 
   // XP bar
   barWrap:     { marginTop: 12, gap: 4 },
-  barTrack:    { height: 4, backgroundColor: colors.divider, borderRadius: 99, overflow: 'hidden' },
+  barTrack:    { height: 4, backgroundColor: 'rgba(92,61,0,0.15)', borderRadius: 99, overflow: 'hidden' },
   barFill:     { height: 4, borderRadius: 99 },
-  barLabel:    { fontSize: 9, color: colors.textMuted, fontFamily: Fonts.medium, textAlign: 'right' },
+  barLabel:    { fontSize: 9, color: colors.textPrimary, fontFamily: Fonts.medium, textAlign: 'right' },
 });
 
 function AchievementCard({ a, current, unlocked, colors }: { a: AchievementDef; current: number; unlocked: boolean; colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors'] }) {
@@ -203,7 +204,16 @@ export default function AchievementsScreen() {
     <View style={styles.root}>
       {/* ── HEADER ── */}
       <View style={styles.header}>
-        <View style={styles.headerBubble} />
+        <LinearGradient
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          pointerEvents="none"
+        />
+        <View style={styles.orb1} pointerEvents="none" />
+        <View style={styles.orb2} pointerEvents="none" />
+        <View style={styles.orb3} pointerEvents="none" />
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Quay lại</Text>
         </TouchableOpacity>
@@ -256,6 +266,9 @@ export default function AchievementsScreen() {
 
 const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  orb1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.18)', top: -60, right: -40 },
+  orb2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.12)', top: 30, right: 80 },
+  orb3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(180,120,0,0.12)', bottom: 20, left: -20 },
 
   header: {
     backgroundColor: colors.surface,
@@ -263,11 +276,10 @@ const makeStyles = (colors: ReturnType<typeof import('../context/ThemeContext').
     borderBottomLeftRadius: 32, borderBottomRightRadius: 32,
     overflow: 'hidden',
   },
-  headerBubble: { position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(129,140,248,0.08)' },
   backBtn:      { marginBottom: 8 },
-  backText:     { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.bold },
+  backText:     { fontSize: 13, color: colors.textPrimary, fontFamily: Fonts.bold },
   headerTitle:  { fontSize: 26, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 2 },
-  headerSub:    { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.medium, marginBottom: 18 },
+  headerSub:    { fontSize: 13, color: colors.textPrimary, fontFamily: Fonts.medium, marginBottom: 18, opacity: 0.7 },
 
 
   tabScroll:   { flexShrink: 0, maxHeight: 52 },

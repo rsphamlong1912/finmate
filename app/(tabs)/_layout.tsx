@@ -31,7 +31,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               <Ionicons
                 name={(focused ? tab.icon : tab.iconOutline) as any}
                 size={24}
-                color={focused ? '#3D6B35' : 'rgba(26,26,46,0.35)'}
+                color={focused ? '#5C3D00' : 'rgba(26,26,46,0.35)'}
               />
               <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
                 {tab.label}
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: Platform.OS === 'android' ? 'rgba(255,255,255,0.92)' : 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(61,107,53,0.1)',
-    shadowColor: '#3D6B35',
+    borderColor: 'rgba(92,61,0,0.08)',
+    shadowColor: '#5C3D00',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
@@ -118,16 +118,16 @@ const styles = StyleSheet.create({
     color: 'rgba(26,26,46,0.35)',
   },
   tabLabelActive: {
-    color: '#3D6B35',
+    color: '#5C3D00',
     fontFamily: Fonts.extraBold,
   },
   fabShadow: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    shadowColor: '#1a3d16',
+    shadowColor: '#9A6E00',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 12,
   },
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   fabOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(45,90,39,0.62)',
+    backgroundColor: 'rgba(92,61,0,0.55)',
   },
   fabText: {
     fontSize: 30,

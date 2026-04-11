@@ -22,12 +22,12 @@ const CIRC = 2 * Math.PI * RING_R;
 
 function ProgressRing({ pct, done }: { pct: number; done: boolean }) {
   const offset = CIRC * (1 - Math.min(pct, 100) / 100);
-  const color = done ? '#34d399' : '#3D6B35';
+  const color = done ? '#34d399' : '#FFE234';
   return (
     <View style={{ width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={RING_SIZE} height={RING_SIZE} style={{ position: 'absolute' }}>
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
-          stroke={done ? 'rgba(52,211,153,0.18)' : 'rgba(61,107,53,0.15)'} strokeWidth={RING_STROKE} fill="none" />
+          stroke={done ? 'rgba(52,211,153,0.18)' : 'rgba(200,150,12,0.18)'} strokeWidth={RING_STROKE} fill="none" />
         <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
           stroke={color} strokeWidth={RING_STROKE} fill="none"
           strokeDasharray={CIRC} strokeDashoffset={offset}
@@ -35,7 +35,7 @@ function ProgressRing({ pct, done }: { pct: number; done: boolean }) {
           rotation="-90" origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
         />
       </Svg>
-      <Text style={{ fontSize: done ? 18 : 12, fontFamily: Fonts.extraBold, color }}>
+      <Text style={{ fontSize: done ? 18 : 12, fontFamily: Fonts.extraBold, color: done ? '#34d399' : '#5C3D00' }}>
         {done ? '✓' : `${Math.round(pct)}%`}
       </Text>
     </View>
@@ -180,6 +180,9 @@ export default function GoalsScreen() {
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.bg },
+    orb1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.18)', top: -60, right: -40 },
+    orb2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.12)', top: 30, right: 80 },
+    orb3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(180,120,0,0.12)', bottom: 20, left: -20 },
 
     // Header
     header: {
@@ -242,9 +245,10 @@ export default function GoalsScreen() {
 
     depositBtn: {
       width: 36, height: 36, borderRadius: 12,
-      backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1.5, borderColor: 'rgba(92,61,0,0.2)',
     },
-    depositBtnText: { color: colors.accentText, fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
+    depositBtnText: { color: colors.textPrimary, fontSize: 22, fontFamily: Fonts.extraBold, lineHeight: 28 },
 
     // FAB
     fab: {
@@ -277,19 +281,19 @@ export default function GoalsScreen() {
       backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.cardBorder,
     },
     sheetTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
-    sheetCancel: { fontSize: 15, color: colors.textMuted, fontFamily: Fonts.semiBold },
-    sheetSave: { fontSize: 15, color: colors.accent, fontFamily: Fonts.extraBold },
+    sheetCancel: { fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.semiBold },
+    sheetSave: { fontSize: 15, color: colors.accentText, fontFamily: Fonts.extraBold },
     sheetBody: { padding: 20, paddingTop: 8 },
 
     // Fields
-    fieldLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.accent, marginTop: 18, marginBottom: 8 },
+    fieldLabel: { fontSize: 12, fontFamily: Fonts.bold, color: colors.textPrimary, marginTop: 18, marginBottom: 8 },
     fieldInput: {
       backgroundColor: colors.inputBg, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14,
       fontSize: 15, color: colors.textPrimary, fontFamily: Fonts.semiBold,
       borderWidth: 1, borderColor: colors.inputBorder,
       justifyContent: 'center',
     },
-    fieldPreview: { fontSize: 12, color: colors.accent, fontFamily: Fonts.bold, marginTop: 6 },
+    fieldPreview: { fontSize: 12, color: colors.textMuted, fontFamily: Fonts.bold, marginTop: 6 },
     clearDate: { fontSize: 12, color: colors.danger, fontFamily: Fonts.semiBold, marginTop: 8 },
 
     // Suggestions
@@ -324,12 +328,15 @@ export default function GoalsScreen() {
       {/* ── HEADER ── */}
       <View style={s.header}>
         <LinearGradient
-          colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 1 }}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           pointerEvents="none"
         />
+        <View style={s.orb1} pointerEvents="none" />
+        <View style={s.orb2} pointerEvents="none" />
+        <View style={s.orb3} pointerEvents="none" />
         <Text style={s.headerTitle}>Mục tiêu</Text>
         <Text style={s.headerSub}>Đặt mục tiêu và theo dõi tiết kiệm</Text>
 

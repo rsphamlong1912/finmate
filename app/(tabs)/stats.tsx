@@ -20,73 +20,85 @@ function toLocalDateStr(date: Date): string {
 }
 
 
-/* ── So sánh ngày được chọn vs ngày trước đó ── */
+/* ── So sánh ngày được chọn vs ngày trước đó (3 cột) ── */
 function DayCompareCard({ expenses, total, selectedDay, todayStr, styles }: { expenses: any[]; total: number; selectedDay: Date; todayStr: string; styles: any }) {
+  const { colors } = useTheme();
   const isToday = toLocalDateStr(selectedDay) === todayStr;
   const prevDay = new Date(selectedDay);
   prevDay.setDate(selectedDay.getDate() - 1);
-  const prevStr = toLocalDateStr(prevDay);
   const prevTotal = expenses
-    .filter(e => toLocalDateStr(new Date(e.created_at)) === prevStr)
+    .filter(e => toLocalDateStr(new Date(e.created_at)) === toLocalDateStr(prevDay))
     .reduce((s: number, e: any) => s + e.amount, 0);
   const diff = total - prevTotal;
   const isMore = diff > 0;
-  const isSame = diff === 0;
-  const dayLabel = isToday ? 'Hôm nay' : `${selectedDay.getDate()}/${selectedDay.getMonth()+1}`;
-  const prevLabel = isToday ? 'hôm qua' : `${prevDay.getDate()}/${prevDay.getMonth()+1}`;
-  return (
-    <View style={styles.dayCompareCard}>
-      <Text style={{ fontSize: 22 }}>{prevTotal === 0 ? '📅' : isMore ? '📈' : '📉'}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.dayCompareText}>
-          {prevTotal === 0 ? `Ngày ${prevLabel} không có giao dịch`
-            : isSame ? `${dayLabel} bằng ${prevLabel}`
-            : isMore ? `${dayLabel} nhiều hơn ${prevLabel} ${formatVNDShort(Math.abs(diff))}`
-            : `${dayLabel} ít hơn ${prevLabel} ${formatVNDShort(Math.abs(diff))}`}
-        </Text>
-        {prevTotal > 0 && <Text style={styles.dayCompareSub}>Ngày {prevLabel}: {formatVNDShort(prevTotal)}</Text>}
-      </View>
-      {prevTotal > 0 && !isSame && (
-        <View style={[styles.dayCompareBadge, { backgroundColor: isMore ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.12)' }]}>
-          <Text style={[styles.dayCompareBadgeText, { color: isMore ? '#fbbf24' : '#34d399' }]}>
-            {isMore ? '+' : '-'}{Math.abs(Math.round((diff / prevTotal) * 100))}%
-          </Text>
-        </View>
-      )}
-    </View>
-  );
-}
+  const pct = prevTotal > 0 ? Math.abs(Math.round((diff / prevTotal) * 100)) : 0;
+  const currentLabel = isToday ? 'Hôm nay' : `${selectedDay.getDate()}/${selectedDay.getMonth()+1}`;
+  const prevLabel    = isToday ? 'Hôm qua'  : `${prevDay.getDate()}/${prevDay.getMonth()+1}`;
 
-/* ── So sánh 7 ngày gần nhất vs 7 ngày trước đó ── */
-function WeekCompareCard({ expenses, total, styles }: { expenses: any[]; total: number; styles: any }) {
-  const { colors } = useTheme();
-  const now = new Date();
-  const prev7Start = new Date(now); prev7Start.setDate(now.getDate() - 14); prev7Start.setHours(0,0,0,0);
-  const prev7End = new Date(now); prev7End.setDate(now.getDate() - 7); prev7End.setHours(0,0,0,0);
-  const lastWeekTotal = expenses
-    .filter(e => { const d = new Date(e.created_at); return d >= prev7Start && d < prev7End; })
-    .reduce((s: number, e: any) => s + e.amount, 0);
-  const diff = total - lastWeekTotal;
-  const isMore = diff > 0;
-  const isSame = diff === 0 || lastWeekTotal === 0;
-  const pct = lastWeekTotal > 0 ? Math.abs(Math.round((diff / lastWeekTotal) * 100)) : 0;
   return (
     <View style={styles.weekCompareCard}>
       <View style={styles.weekCmpItem}>
-        <Text style={styles.weekCmpLbl}>Tuần này</Text>
+        <Text style={styles.weekCmpLbl}>{currentLabel}</Text>
         <Text style={styles.weekCmpVal}>{formatVNDShort(total)}</Text>
       </View>
       <View style={styles.weekCmpDivider} />
       <View style={styles.weekCmpItem}>
-        <Text style={styles.weekCmpLbl}>Tuần trước</Text>
+        <Text style={styles.weekCmpLbl}>{prevLabel}</Text>
         <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 15 }]}>
-          {lastWeekTotal > 0 ? formatVNDShort(lastWeekTotal) : '—'}
+          {prevTotal > 0 ? formatVNDShort(prevTotal) : '—'}
         </Text>
       </View>
       <View style={styles.weekCmpDivider} />
       <View style={styles.weekCmpItem}>
-        <Text style={styles.weekCmpLbl}>Chênh lệch</Text>
-        {isSame || lastWeekTotal === 0 ? (
+        <Text style={styles.weekCmpLbl}>So sánh</Text>
+        {prevTotal === 0 ? (
+          <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 13 }]}>—</Text>
+        ) : (
+          <View style={[styles.weekCmpBadge, { backgroundColor: isMore ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.12)' }]}>
+            <Text style={[styles.weekCmpBadgeText, { color: isMore ? '#fbbf24' : '#34d399' }]}>
+              {isMore ? `+${pct}%` : `-${pct}%`} {isMore ? '😬' : '🎉'}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/* ── So sánh tuần đang xem vs tuần trước đó ── */
+function WeekCompareCard({ expenses, total, weekStart, weekOffset, styles }: {
+  expenses: any[]; total: number; weekStart: Date; weekOffset: number; styles: any;
+}) {
+  const { colors } = useTheme();
+  const prevStart = new Date(weekStart); prevStart.setDate(weekStart.getDate() - 7);
+  const prevEnd   = new Date(weekStart); prevEnd.setMilliseconds(-1);
+  const prevTotal = expenses
+    .filter(e => { const d = new Date(e.created_at); return d >= prevStart && d <= prevEnd; })
+    .reduce((s: number, e: any) => s + e.amount, 0);
+  const diff = total - prevTotal;
+  const isMore = diff > 0;
+  const pct = prevTotal > 0 ? Math.abs(Math.round((diff / prevTotal) * 100)) : 0;
+
+  const currentLabel = weekOffset === 0 ? 'Tuần này' : 'Tuần trước';
+  const prevLabel    = weekOffset === 0 ? 'Tuần trước' : 'Tuần trước đó';
+
+  return (
+    <View style={styles.weekCompareCard}>
+      <View style={styles.weekCmpItem}>
+        <Text style={styles.weekCmpLbl}>{currentLabel}</Text>
+        <Text style={styles.weekCmpVal}>{formatVNDShort(total)}</Text>
+      </View>
+      <View style={styles.weekCmpDivider} />
+      <View style={styles.weekCmpItem}>
+        <Text style={styles.weekCmpLbl}>{prevLabel}</Text>
+        <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 15 }]}>
+          {prevTotal > 0 ? formatVNDShort(prevTotal) : '—'}
+        </Text>
+      </View>
+      <View style={styles.weekCmpDivider} />
+      <View style={styles.weekCmpItem}>
+        <Text style={styles.weekCmpLbl}>So sánh</Text>
+        {prevTotal === 0 ? (
           <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 13 }]}>—</Text>
         ) : (
           <View style={[styles.weekCmpBadge, { backgroundColor: isMore ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.12)' }]}>
@@ -142,7 +154,7 @@ export default function StatsScreen() {
       setShowLoader(false);
     }
   }, [timerDone, profileLoading, expensesLoading]);
-  const { getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
+  const { categories: allCategories, getCategoryLabel, getCategoryColor, getCategoryEmoji } = useCategories();
   const [filter, setFilter] = useState('Ngày');
   const [showTxDetail, setShowTxDetail] = useState(false);
 
@@ -168,10 +180,19 @@ export default function StatsScreen() {
   useEffect(() => { if (showRangeModal) fadeIn(rangeModalAnim); }, [showRangeModal]);
   useEffect(() => { if (showDayPicker) fadeIn(dayPickerAnim); }, [showDayPicker]);
 
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = tuần này, -1 = tuần trước...
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = tháng này, -1 = tháng trước...
+  const [showTrend, setShowTrend] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const todayStr = toLocalDateStr(now);
   const month = now.getMonth();
   const year = now.getFullYear();
+
+  // Tháng đang xem (month tab)
+  const { viewMonth, viewYear } = useMemo(() => {
+    const d = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    return { viewMonth: d.getMonth(), viewYear: d.getFullYear() };
+  }, [now, monthOffset]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -183,67 +204,74 @@ export default function StatsScreen() {
     return () => clearInterval(interval);
   }, [todayStr]);
 
+  // T2 của tuần hiện tại + offset
+  const weekStart = useMemo(() => {
+    const d = new Date(now);
+    const dow = d.getDay(); // 0=CN,1=T2...
+    const diffToMon = (dow + 6) % 7; // khoảng cách tới T2
+    d.setDate(d.getDate() - diffToMon + weekOffset * 7);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [now, weekOffset]);
+
+  const weekEnd = useMemo(() => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + 6);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, [weekStart]);
+
   const filtered = useMemo(() => {
     return expenses.filter(e => {
       const d = new Date(e.created_at);
       if (filter === 'Ngày') return toLocalDateStr(new Date(e.created_at)) === toLocalDateStr(selectedDay);
-      if (filter === 'Tuần') {
-        const ws = new Date(now); ws.setDate(now.getDate() - 6); ws.setHours(0,0,0,0);
-        return d >= ws;
-      }
+      if (filter === 'Tuần') return d >= weekStart && d <= weekEnd;
       if (filter === 'Tùy chỉnh') return d >= customStart && d <= customEnd;
-      return d.getMonth() === month && d.getFullYear() === year;
+      return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
     });
-  }, [expenses, filter, selectedDay, todayStr, month, year, customStart, customEnd]);
+  }, [expenses, filter, selectedDay, todayStr, viewMonth, viewYear, customStart, customEnd, weekStart, weekEnd]);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
   const budget = profile?.monthly_budget ?? 10_000_000;
-  // Bug #9: dùng số ngày thực của tháng thay vì /30
-  const daysInCurrentMonth = new Date(year, month + 1, 0).getDate();
-  const periodBudget =
-    filter === 'Ngày'      ? Math.round(budget / daysInCurrentMonth) :
-    filter === 'Tuần'      ? Math.round(budget / (daysInCurrentMonth / 7)) :
-    filter === 'Tùy chỉnh' ? Math.round(budget / daysInCurrentMonth * (Math.floor((customEnd.getTime() - customStart.getTime()) / 86400000) + 1)) :
-    budget;
-  const saved = Math.max(periodBudget - total, 0);
+  const daysInViewMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   // Bug #3: tab Tuần luôn show 7 ngày → daysElapsed = 7
   const daysElapsed =
     filter === 'Ngày'      ? 1 :
     filter === 'Tuần'      ? 7 :
     filter === 'Tùy chỉnh' ? Math.max(Math.floor((customEnd.getTime() - customStart.getTime()) / 86400000) + 1, 1) :
-    now.getDate();
+    monthOffset < 0        ? daysInViewMonth : now.getDate();
   const avgPerDay = total > 0 ? total / Math.max(daysElapsed, 1) : 0;
-  const pctBudget = periodBudget > 0 ? Math.round((total / periodBudget) * 100) : 0;
 
-  /* ── Tháng trước ── */
+  /* ── Tháng trước (so với tháng đang xem) ── */
   const lastMonthTotal = useMemo(() => {
-    const lm = month === 0 ? 11 : month - 1;
-    const ly = month === 0 ? year - 1 : year;
+    const lm = viewMonth === 0 ? 11 : viewMonth - 1;
+    const ly = viewMonth === 0 ? viewYear - 1 : viewYear;
     return expenses
       .filter(e => { const d = new Date(e.created_at); return d.getMonth() === lm && d.getFullYear() === ly; })
       .reduce((s, e) => s + e.amount, 0);
-  }, [expenses, month, year]);
+  }, [expenses, viewMonth, viewYear]);
 
   const monthDiff = total - lastMonthTotal;
   const monthIsMore = monthDiff > 0;
   const monthPct = lastMonthTotal > 0 ? Math.abs(Math.round((monthDiff / lastMonthTotal) * 100)) : 0;
 
-  /* ── Slope insight ── */
+  /* ── Slope insight (chỉ tháng hiện tại) ── */
   const slopeInsight = useMemo(() => {
+    if (monthOffset !== 0) return null; // Không có slope cho tháng đã qua
     if (now.getDate() < 7) return null;
     const halfway = Math.floor(now.getDate() / 2);
     const firstHalf = expenses
-      .filter(e => { const d = new Date(e.created_at); return d.getMonth() === month && d.getFullYear() === year && d.getDate() <= halfway; })
+      .filter(e => { const d = new Date(e.created_at); return d.getMonth() === viewMonth && d.getFullYear() === viewYear && d.getDate() <= halfway; })
       .reduce((s, e) => s + e.amount, 0);
     const secondHalf = expenses
-      .filter(e => { const d = new Date(e.created_at); return d.getMonth() === month && d.getFullYear() === year && d.getDate() > halfway; })
+      .filter(e => { const d = new Date(e.created_at); return d.getMonth() === viewMonth && d.getFullYear() === viewYear && d.getDate() > halfway; })
       .reduce((s, e) => s + e.amount, 0);
     const rateFirst = firstHalf / halfway;
     const rateSecond = secondHalf / Math.max(now.getDate() - halfway, 1);
     if (rateSecond > rateFirst * 1.2) return { text: 'Slope dốc — đang tiêu nhanh hơn 🚨', color: '#ef4444', bg: '#fef2f2' };
     if (rateSecond < rateFirst * 0.8) return { text: 'Slope giảm — đang kiểm soát tốt hơn 👍', color: '#34d399', bg: 'rgba(52,211,153,0.12)' };
     return { text: 'Slope đều — chi tiêu ổn định 💪', color: '#818cf8', bg: 'rgba(129,140,248,0.15)' };
-  }, [expenses, month, year, now]);
+  }, [expenses, viewMonth, viewYear, monthOffset, now]);
 
   /* ── Pre-group expenses theo ngày — O(n) một lần, lookup O(1) ── */
   const expensesByDate = useMemo(() => {
@@ -260,20 +288,21 @@ export default function StatsScreen() {
 
   const weekBarData = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now); d.setDate(now.getDate() - 6 + i);
+      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
       const dStr = toLocalDateStr(d);
       return { x: `${d.getDate()}/${d.getMonth()+1}\n${dayNames[d.getDay()]}`, y: (expensesByDate[dStr] ?? 0) / 1000 };
     });
-  }, [expensesByDate, now]);
+  }, [expensesByDate, weekStart]);
 
   const lineData = useMemo(() => {
+    const numDays = monthOffset < 0 ? daysInViewMonth : now.getDate();
     let cum = 0;
-    return Array.from({ length: now.getDate() }, (_, i) => {
-      const d = new Date(year, month, i + 1);
+    return Array.from({ length: numDays }, (_, i) => {
+      const d = new Date(viewYear, viewMonth, i + 1);
       cum += expensesByDate[toLocalDateStr(d)] ?? 0;
       return { x: i + 1, y: cum / 1_000_000 };
     });
-  }, [expensesByDate, now]);
+  }, [expensesByDate, viewYear, viewMonth, monthOffset, daysInViewMonth, now]);
 
   /* ── Custom bar data ── */
   const customBarData = useMemo(() => {
@@ -291,6 +320,7 @@ export default function StatsScreen() {
     return customBarData.reduce((max, d) => d.y > max.y ? d : max, customBarData[0]);
   }, [customBarData]);
 
+
   /* ── Pie data ── */
   const pieData = useMemo(() => {
     const by: Record<string, number> = {};
@@ -299,7 +329,7 @@ export default function StatsScreen() {
       x: getCategoryLabel(cat),
       y: val, color: getCategoryColor(cat), category: cat,
     }));
-  }, [filtered]);
+  }, [filtered, allCategories]);
   const pieTotal = pieData.reduce((s, d) => s + d.y, 0);
 
   const peakDay = useMemo(() => {
@@ -316,12 +346,15 @@ export default function StatsScreen() {
       {/* HEADER - fixed */}
       <View style={styles.header}>
         <LinearGradient
-          colors={['rgba(61,107,53,0.12)', 'rgba(61,107,53,0.03)', 'transparent']}
+          colors={['#FFD000', '#FFE234', '#FFF0A0']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
+          end={{ x: 1, y: 1 }}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           pointerEvents="none"
         />
+        <View style={styles.orb1} pointerEvents="none" />
+        <View style={styles.orb2} pointerEvents="none" />
+        <View style={styles.orb3} pointerEvents="none" />
         <Text style={styles.headerTitle}>Báo cáo chi tiêu</Text>
         <Text style={styles.headerSub}>Phân tích chi tiêu theo danh mục và thời gian</Text>
         <View style={styles.filterRow}>
@@ -341,39 +374,35 @@ export default function StatsScreen() {
 
         {/* ── NGÀY ── */}
         {filter === 'Ngày' && (
-          <View style={styles.dayBody}>
-            <View style={styles.dayMainCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={styles.dayLbl}>
-                  {toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay đã tiêu' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}/${selectedDay.getFullYear()}`}
+          <View style={styles.periodBody}>
+            {/* 1. Hero card */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <Text style={styles.periodLbl}>
+                  {toLocalDateStr(selectedDay) === todayStr ? 'HÔM NAY' : `NGÀY ${selectedDay.getDate()}/${selectedDay.getMonth()+1}`}
                 </Text>
                 <TouchableOpacity onPress={() => setShowDayPicker(true)} style={styles.editRangeBtn}>
                   <Text style={styles.editRangeBtnText}>{selectedDay.getDate()}/{selectedDay.getMonth()+1}/{selectedDay.getFullYear()} ›</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.dayAmt}>{formatVND(total)}</Text>
-              <View style={styles.dayTrack}>
-                <View style={[styles.dayFill, { width: `${Math.min(periodBudget > 0 ? (total / periodBudget) * 100 : 0, 100)}%` as any, backgroundColor: total > periodBudget ? '#ef4444' : '#818cf8' }]} />
-              </View>
-              <TouchableOpacity
-                onPress={() => filtered.length > 0 && setShowTxDetail(true)}
-                style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.dayRemain, filtered.length > 0 && styles.dayRemainActive]}>
-                  🧾 {filtered.length} giao dịch{toLocalDateStr(selectedDay) === todayStr ? ' hôm nay' : ''}{filtered.length > 0 ? ' →' : ''}
-                </Text>
+              <Text style={styles.heroAmt}>{formatVND(total)}</Text>
+              <TouchableOpacity onPress={() => filtered.length > 0 && setShowTxDetail(true)} style={[styles.txBtn, filtered.length > 0 && styles.txBtnActive]} activeOpacity={0.7}>
+                <Text style={[styles.txBtnText, filtered.length > 0 && styles.txBtnTextActive]}>🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}</Text>
               </TouchableOpacity>
             </View>
-            {total > 0 && (
-              <DayCompareCard expenses={expenses} total={total} selectedDay={selectedDay} todayStr={todayStr} styles={styles} />
-            )}
+
+            {/* 2. Compare card */}
+            {total > 0 && toLocalDateStr(selectedDay) === todayStr && <DayCompareCard expenses={expenses} total={total} selectedDay={selectedDay} todayStr={todayStr} styles={styles} />}
+
+            {/* 3. (Không có biểu đồ cho 1 ngày) */}
+
+            {/* 4. Pie */}
             <PieCategoryChart data={pieData} total={pieTotal} title={toLocalDateStr(selectedDay) === todayStr ? 'Tiêu vào đâu hôm nay?' : `Tiêu vào đâu ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}?`} styles={styles} />
             {pieData.length === 0 && (
-              <View style={styles.dayEmpty}>
+              <View style={styles.empty}>
                 <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
-                <Text style={styles.dayEmptyTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay chưa có giao dịch' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1} không có giao dịch`}</Text>
-                <Text style={styles.dayEmptySub}>Ghi lại mỗi khoản chi — cậu sẽ ngạc nhiên khi nhìn lại</Text>
+                <Text style={styles.emptyTitle}>{toLocalDateStr(selectedDay) === todayStr ? 'Hôm nay chưa có giao dịch' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1} không có giao dịch`}</Text>
+                <Text style={styles.emptySub}>Ghi lại mỗi khoản chi — cậu sẽ ngạc nhiên khi nhìn lại</Text>
               </View>
             )}
             <View style={{ height: 100 }} />
@@ -382,38 +411,61 @@ export default function StatsScreen() {
 
         {/* ── TUẦN ── */}
         {filter === 'Tuần' && (
-          <View style={styles.weekBody}>
-            <WeekCompareCard expenses={expenses} total={total} styles={styles} />
+          <View style={styles.periodBody}>
+            {/* 1. Hero card */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <Text style={styles.periodLbl}>
+                  {weekOffset === 0 ? 'TUẦN NÀY' : weekOffset === -1 ? 'TUẦN TRƯỚC' : 'TUẦN TRƯỚC'}
+                </Text>
+                <View style={styles.heroNavInline}>
+                  <TouchableOpacity onPress={() => setWeekOffset(o => o - 1)} style={styles.weekNavBtn}>
+                    <Text style={styles.weekNavArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.editRangeBtnText}>{weekStart.getDate()}/{weekStart.getMonth()+1} – {weekEnd.getDate()}/{weekEnd.getMonth()+1}</Text>
+                  <TouchableOpacity onPress={() => setWeekOffset(o => Math.min(o + 1, 0))} style={styles.weekNavBtn} disabled={weekOffset === 0}>
+                    <Text style={[styles.weekNavArrow, weekOffset === 0 && { opacity: 0.25 }]}>›</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <Text style={styles.heroAmt}>{formatVND(total)}</Text>
+              {total > 0 && (
+                <View style={styles.customMetaRow}>
+                  <Text style={styles.customMetaText}>Trung bình {formatVNDShort(avgPerDay)}/ngày</Text>
+                </View>
+              )}
+              <TouchableOpacity onPress={() => filtered.length > 0 && setShowTxDetail(true)} style={[styles.txBtn, filtered.length > 0 && styles.txBtnActive]} activeOpacity={0.7}>
+                <Text style={[styles.txBtnText, filtered.length > 0 && styles.txBtnTextActive]}>🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 2. Compare card — chỉ hiện ở tuần hiện tại */}
+            {weekOffset === 0 && <WeekCompareCard expenses={expenses} total={total} weekStart={weekStart} weekOffset={weekOffset} styles={styles} />}
+
+            {/* 3. Bar chart */}
             <View style={styles.section}>
               <View style={styles.sectionRow}>
-                <Text style={styles.sectionTitle}>Ngày nào tiêu nhiều nhất?</Text>
-                {peakDay && <View style={styles.peakBadge}><Text style={styles.peakBadgeText}>🔴 {peakDay.x} cao nhất</Text></View>}
+                <Text style={styles.sectionTitle}>Chi tiêu theo ngày</Text>
+                {peakDay && <View style={styles.peakBadge}><Text style={styles.peakBadgeText}>🔴 {peakDay.x.split('\n')[0]} cao nhất</Text></View>}
               </View>
               <View style={styles.chartCard}>
                 {weekBarData.every(d => d.y === 0) ? (
-                  <View style={styles.emptyChart}><Text style={styles.emptyText}>Chưa có dữ liệu tuần này</Text></View>
+                  <View style={styles.emptyChart}><Text style={styles.emptyText}>Chưa có dữ liệu</Text></View>
                 ) : (
                   <VictoryChart width={width - 64} height={230} theme={VictoryTheme.material} domainPadding={{ x: 16 }} padding={{ top: 36, bottom: 36, left: 48, right: 16 }}>
                     <VictoryAxis style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
                     <VictoryAxis dependentAxis tickFormat={t => `${t}k`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
-                    <VictoryBar
-                      data={weekBarData}
-                      style={{ data: { fill: ({ datum }) => peakDay && datum.x === peakDay.x ? '#ef4444' : '#818cf8' } }}
-                      cornerRadius={{ top: 6 }}
-                      animate={false}
+                    <VictoryBar data={weekBarData} style={{ data: { fill: ({ datum }) => peakDay && datum.x === peakDay.x ? '#ef4444' : '#818cf8' } }} cornerRadius={{ top: 6 }} animate={false}
                       labels={({ datum }) => datum.y > 0 ? `${Math.round(datum.y)}k` : ''}
-                      labelComponent={
-                        <VictoryLabel
-                          dy={-4}
-                          style={{ fontSize: 9, fill: '#818cf8', fontFamily: 'System', fontWeight: '700' }}
-                        />
-                      }
+                      labelComponent={<VictoryLabel dy={-4} style={{ fontSize: 9, fill: '#818cf8', fontFamily: 'System', fontWeight: '700' }} />}
                     />
                   </VictoryChart>
                 )}
               </View>
             </View>
-            <PieCategoryChart data={pieData} total={pieTotal} title="Danh mục chiếm nhiều nhất" styles={styles} />
+
+            {/* 4. Pie */}
+            <PieCategoryChart data={pieData} total={pieTotal} title="Tiêu vào đâu?" styles={styles} />
             {pieData.length === 0 && (
               <View style={styles.empty}><Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text><Text style={styles.emptyTitle}>Chưa có dữ liệu</Text><Text style={styles.emptySub}>Thêm chi tiêu để xem thống kê</Text></View>
             )}
@@ -421,111 +473,103 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* ── THÁNG: Option B Review Style ── */}
+        {/* ── THÁNG ── */}
         {filter === 'Tháng' && (
-          <View style={styles.monthBody}>
-
-            {/* 1. Score card gradient */}
-            <View style={styles.monthScoreCard}>
-              <View style={styles.monthScoreCircle} />
-              <Text style={styles.monthScoreLbl}>
-                {now.toLocaleString('vi-VN', { month: 'long', year: 'numeric' })} · Tổng chi tiêu
-              </Text>
-              <Text style={styles.monthScoreAmt}>{formatVND(total)}</Text>
-              <View style={styles.monthScoreRow}>
-                <View style={styles.monthScoreItem}>
-                  <Text style={styles.monthScoreItemVal}>{pctBudget}%</Text>
-                  <Text style={styles.monthScoreItemLbl}>ngân sách</Text>
-                </View>
-                <View style={styles.monthScoreItemDivider} />
-                <View style={styles.monthScoreItem}>
-                  <Text style={[styles.monthScoreItemVal, total > budget && { color: '#ef4444' }]}>
-                    {total > budget ? `-${formatVNDShort(total - budget)}` : formatVNDShort(saved)}
-                  </Text>
-                  <Text style={styles.monthScoreItemLbl}>{total > budget ? 'vượt budget' : 'còn lại'}</Text>
-                </View>
-                <View style={styles.monthScoreItemDivider} />
-                <View style={styles.monthScoreItem}>
-                  <Text style={styles.monthScoreItemVal}>{formatVNDShort(avgPerDay)}</Text>
-                  <Text style={styles.monthScoreItemLbl}>TB/ngày</Text>
+          <View style={styles.periodBody}>
+            {/* 1. Hero card */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <Text style={styles.periodLbl}>
+                  {monthOffset === 0 ? 'THÁNG NÀY' : monthOffset === -1 ? 'THÁNG TRƯỚC' : 'THÁNG TRƯỚC'}
+                </Text>
+                <View style={styles.heroNavInline}>
+                  <TouchableOpacity onPress={() => setMonthOffset(o => o - 1)} style={styles.weekNavBtn}>
+                    <Text style={styles.weekNavArrow}>‹</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.editRangeBtnText}>T{viewMonth + 1}/{viewYear}</Text>
+                  <TouchableOpacity onPress={() => setMonthOffset(o => Math.min(o + 1, 0))} style={styles.weekNavBtn} disabled={monthOffset === 0}>
+                    <Text style={[styles.weekNavArrow, monthOffset === 0 && { opacity: 0.25 }]}>›</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
+              <Text style={styles.heroAmt}>{formatVND(total)}</Text>
+              {total > 0 && (
+                <View style={styles.customMetaRow}>
+                  <Text style={styles.customMetaText}>Trung bình {formatVNDShort(avgPerDay)}/ngày</Text>
+                </View>
+              )}
+              <TouchableOpacity onPress={() => filtered.length > 0 && setShowTxDetail(true)} style={[styles.txBtn, filtered.length > 0 && styles.txBtnActive]} activeOpacity={0.7}>
+                <Text style={[styles.txBtnText, filtered.length > 0 && styles.txBtnTextActive]}>🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}</Text>
+              </TouchableOpacity>
             </View>
 
-            {/* 2. Calendar chi tiêu theo ngày */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Chi tiêu theo ngày</Text>
-              <View style={styles.chartCard}>
-                <ExpenseCalendar />
+            {/* 2. Compare card — chỉ hiện ở tháng hiện tại */}
+            {monthOffset === 0 && <View style={styles.weekCompareCard}>
+              <View style={styles.weekCmpItem}>
+                <Text style={styles.weekCmpLbl}>THÁNG NÀY</Text>
+                <Text style={styles.weekCmpVal}>{formatVNDShort(total)}</Text>
               </View>
-            </View>
-
-            {/* 3. So sánh tháng trước */}
-            <View style={styles.monthCmpCard}>
-              <View style={styles.monthCmpItem}>
-                <Text style={styles.monthCmpLbl}>Tháng này</Text>
-                <Text style={styles.monthCmpAmt}>{formatVNDShort(total)}</Text>
-              </View>
-              <View style={styles.monthCmpDivider} />
-              <View style={styles.monthCmpItem}>
-                <Text style={styles.monthCmpLbl}>Tháng trước</Text>
-                <Text style={[styles.monthCmpAmt, { color: colors.textMuted, fontSize: 18 }]}>
+              <View style={styles.weekCmpDivider} />
+              <View style={styles.weekCmpItem}>
+                <Text style={styles.weekCmpLbl}>THÁNG TRƯỚC</Text>
+                <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 15 }]}>
                   {lastMonthTotal > 0 ? formatVNDShort(lastMonthTotal) : '—'}
                 </Text>
-                {lastMonthTotal > 0 && (
-                  <View style={[styles.monthCmpBadge, { backgroundColor: monthIsMore ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.12)', marginTop: 6 }]}>
-                    <Text style={[styles.monthCmpBadgeText, { color: monthIsMore ? '#fbbf24' : '#34d399' }]}>
-                      {monthIsMore ? `+${monthPct}% so tháng trước 😬` : `-${monthPct}% so tháng trước 🎉`}
+              </View>
+              <View style={styles.weekCmpDivider} />
+              <View style={styles.weekCmpItem}>
+                <Text style={styles.weekCmpLbl}>So sánh</Text>
+                {lastMonthTotal === 0 ? (
+                  <Text style={[styles.weekCmpVal, { color: colors.textMuted, fontSize: 13 }]}>—</Text>
+                ) : (
+                  <View style={[styles.weekCmpBadge, { backgroundColor: monthIsMore ? 'rgba(251,191,36,0.12)' : 'rgba(52,211,153,0.12)' }]}>
+                    <Text style={[styles.weekCmpBadgeText, { color: monthIsMore ? '#fbbf24' : '#34d399' }]}>
+                      {monthIsMore ? `+${monthPct}%` : `-${monthPct}%`} {monthIsMore ? '😬' : '🎉'}
                     </Text>
                   </View>
                 )}
               </View>
-            </View>
+            </View>}
 
-            {/* 4. Line chart xu hướng + slope insight */}
+            {/* 3. Calendar */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Xu hướng tích lũy</Text>
-              {slopeInsight && (
-                <View style={[styles.insightBadge, { backgroundColor: slopeInsight.bg }]}>
-                  <Text style={[styles.insightText, { color: slopeInsight.color }]}>{slopeInsight.text}</Text>
-                </View>
-              )}
+              <Text style={styles.sectionTitle}>Chi tiêu theo ngày</Text>
               <View style={styles.chartCard}>
-                {lineData.length < 2 ? (
-                  <View style={styles.emptyChart}><Text style={styles.emptyText}>Cần ít nhất 2 ngày dữ liệu</Text></View>
-                ) : (
-                  <VictoryChart
-                    width={width - 64} height={200}
-                    theme={VictoryTheme.material}
-                    padding={{ top: 20, bottom: 36, left: 56, right: 24 }}
-                    domain={{ y: [0, Math.max(budgetLine * 1.1, (lineData[lineData.length - 1]?.y ?? 0) * 1.1)] }}
-                  >
-                    <VictoryAxis tickCount={6} style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
-                    <VictoryAxis dependentAxis tickFormat={t => `${t}tr`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
-                    <VictoryLine
-                      data={[{ x: 1, y: budgetLine }, { x: now.getDate(), y: budgetLine }]}
-                      style={{ data: { stroke: '#ef4444', strokeWidth: 1.5, strokeDasharray: '6 4', opacity: 0.5 } }}
-                    />
-                    <VictoryArea
-                      data={lineData}
-                      style={{ data: { fill: '#818cf8', fillOpacity: 0.1, stroke: '#818cf8', strokeWidth: 2.5 } }}
-                      animate={false}
-                    />
-                  </VictoryChart>
-                )}
-                {lineData.length >= 2 && (
-                  <View style={styles.budgetLineLabel}>
-                    <View style={styles.budgetLineDash} />
-                    <Text style={styles.budgetLineLabelText}>Ngân sách {formatVNDShort(budget)}</Text>
-                  </View>
-                )}
+                <ExpenseCalendar fixedYear={viewYear} fixedMonth={viewMonth} />
               </View>
             </View>
 
-            {/* 5. Pie chart danh mục */}
-            <PieCategoryChart data={pieData} total={pieTotal} title="Tiền đi đâu tháng này?" styles={styles} />
+            {/* 4. Pie */}
+            <PieCategoryChart data={pieData} total={pieTotal} title="Tiêu vào đâu?" styles={styles} />
             {pieData.length === 0 && (
               <View style={styles.empty}><Text style={{ fontSize: 48, marginBottom: 12 }}>📊</Text><Text style={styles.emptyTitle}>Chưa có dữ liệu</Text><Text style={styles.emptySub}>Thêm chi tiêu để xem thống kê</Text></View>
+            )}
+
+            {/* 5. Line chart xu hướng — collapsible */}
+            {lineData.length >= 2 && (
+              <View style={styles.section}>
+                <TouchableOpacity style={styles.trendToggle} onPress={() => setShowTrend(v => !v)} activeOpacity={0.7}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.trendToggleTitle}>Xu hướng tích lũy</Text>
+                    {slopeInsight && <Text style={[styles.trendToggleSub, { color: slopeInsight.color }]}>{slopeInsight.text}</Text>}
+                  </View>
+                  <Text style={styles.trendToggleArrow}>{showTrend ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {showTrend && (
+                  <View style={styles.chartCard}>
+                    <VictoryChart width={width - 64} height={200} theme={VictoryTheme.material} padding={{ top: 20, bottom: 36, left: 56, right: 24 }} domain={{ y: [0, Math.max(budgetLine * 1.1, (lineData[lineData.length - 1]?.y ?? 0) * 1.1)] }}>
+                      <VictoryAxis tickCount={6} style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
+                      <VictoryAxis dependentAxis tickFormat={t => `${t}tr`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
+                      <VictoryLine data={[{ x: 1, y: budgetLine }, { x: monthOffset < 0 ? daysInViewMonth : now.getDate(), y: budgetLine }]} style={{ data: { stroke: '#ef4444', strokeWidth: 1.5, strokeDasharray: '6 4', opacity: 0.5 } }} />
+                      <VictoryArea data={lineData} style={{ data: { fill: '#818cf8', fillOpacity: 0.1, stroke: '#818cf8', strokeWidth: 2.5 } }} animate={false} />
+                    </VictoryChart>
+                    <View style={styles.budgetLineLabel}>
+                      <View style={styles.budgetLineDash} />
+                      <Text style={styles.budgetLineLabelText}>Ngân sách {formatVNDShort(budget)}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
             )}
 
             <View style={{ height: 100 }} />
@@ -533,29 +577,24 @@ export default function StatsScreen() {
         )}
 
         {/* ── TÙY CHỈNH ── */}
-        {filter === 'Tùy chỉnh' && (
-          <View style={styles.customBody}>
-            {/* Main card — giống Ngày */}
-            <View style={styles.dayMainCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                <Text style={styles.dayLbl}>Tổng chi tiêu</Text>
+        {filter === 'Tùy chỉnh' && (() => {
+          return (
+          <View style={styles.periodBody}>
+            {/* 1. Hero card */}
+            <View style={styles.heroCard}>
+              <View style={styles.heroTopRow}>
+                <Text style={styles.periodLbl}>KỲ TÙY CHỈNH</Text>
                 <TouchableOpacity onPress={() => setShowRangeModal(true)} style={styles.editRangeBtn}>
                   <Text style={styles.editRangeBtnText}>{customStart.getDate()}/{customStart.getMonth()+1} — {customEnd.getDate()}/{customEnd.getMonth()+1} ›</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.dayAmt}>{formatVND(total)}</Text>
-              <TouchableOpacity
-                onPress={() => filtered.length > 0 && setShowTxDetail(true)}
-                style={[styles.dayRemainBtn, filtered.length > 0 && styles.dayRemainBtnActive]}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.dayRemain, filtered.length > 0 && styles.dayRemainActive]}>
-                  🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}
-                </Text>
+              <Text style={styles.heroAmt}>{formatVND(total)}</Text>
+              <TouchableOpacity onPress={() => filtered.length > 0 && setShowTxDetail(true)} style={[styles.txBtn, filtered.length > 0 && styles.txBtnActive]} activeOpacity={0.7}>
+                <Text style={[styles.txBtnText, filtered.length > 0 && styles.txBtnTextActive]}>🧾 {filtered.length} giao dịch{filtered.length > 0 ? ' →' : ''}</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Bar chart theo ngày — cuộn ngang */}
+            {/* 3. Bar chart */}
             {customBarData.some(d => d.y > 0) && (
               <View style={styles.section}>
                 <View style={styles.sectionRow}>
@@ -564,20 +603,10 @@ export default function StatsScreen() {
                 </View>
                 <View style={[styles.chartCard, { padding: 0, overflow: 'hidden' }]}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
-                    <VictoryChart
-                      width={Math.max(width - 64, customBarData.length * 52)}
-                      height={230}
-                      theme={VictoryTheme.material}
-                      domainPadding={{ x: 20 }}
-                      padding={{ top: 36, bottom: 40, left: 48, right: 16 }}
-                    >
+                    <VictoryChart width={Math.max(width - 64, customBarData.length * 52)} height={230} theme={VictoryTheme.material} domainPadding={{ x: 20 }} padding={{ top: 36, bottom: 40, left: 48, right: 16 }}>
                       <VictoryAxis style={{ axis: { stroke: 'rgba(129,140,248,0.2)' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: 'transparent' } }} />
                       <VictoryAxis dependentAxis tickFormat={t => `${t}k`} style={{ axis: { stroke: 'transparent' }, tickLabels: { fontSize: 10, fill: colors.textMuted, fontFamily: 'System' }, grid: { stroke: colors.divider, strokeDasharray: '4' } }} />
-                      <VictoryBar
-                        data={customBarData}
-                        style={{ data: { fill: ({ datum }) => customPeakBar && datum.x === customPeakBar.x ? '#ef4444' : '#818cf8' } }}
-                        cornerRadius={{ top: 6 }}
-                        animate={false}
+                      <VictoryBar data={customBarData} style={{ data: { fill: ({ datum }) => customPeakBar && datum.x === customPeakBar.x ? '#ef4444' : '#818cf8' } }} cornerRadius={{ top: 6 }} animate={false}
                         labels={({ datum }) => datum.y > 0 ? `${Math.round(datum.y)}k` : ''}
                         labelComponent={<VictoryLabel dy={-4} style={{ fontSize: 9, fill: '#818cf8', fontFamily: 'System', fontWeight: '700' }} />}
                       />
@@ -587,19 +616,19 @@ export default function StatsScreen() {
               </View>
             )}
 
-            {/* Danh mục */}
+            {/* 4. Pie */}
             <PieCategoryChart data={pieData} total={pieTotal} title="Tiêu vào đâu?" styles={styles} />
             {pieData.length === 0 && (
-              <View style={styles.dayEmpty}>
+              <View style={styles.empty}>
                 <Text style={{ fontSize: 40, marginBottom: 10 }}>📭</Text>
-                <Text style={styles.dayEmptyTitle}>Không có giao dịch</Text>
-                <Text style={styles.dayEmptySub}>trong khoảng thời gian này</Text>
+                <Text style={styles.emptyTitle}>Không có giao dịch</Text>
+                <Text style={styles.emptySub}>trong khoảng thời gian này</Text>
               </View>
             )}
-
             <View style={{ height: 100 }} />
           </View>
-        )}
+          );
+        })()}
 
       </ScrollView>
 
@@ -613,6 +642,10 @@ export default function StatsScreen() {
               <Text style={styles.modalTitle}>
                 {filter === 'Ngày'
                   ? (toLocalDateStr(selectedDay) === todayStr ? 'Giao dịch hôm nay' : `Ngày ${selectedDay.getDate()}/${selectedDay.getMonth()+1}/${selectedDay.getFullYear()}`)
+                  : filter === 'Tuần'
+                  ? (weekOffset === 0 ? 'Tuần này' : weekOffset === -1 ? 'Tuần trước' : `${weekStart.getDate()}/${weekStart.getMonth()+1}`)
+                  : filter === 'Tháng'
+                  ? `Tháng ${viewMonth + 1}/${viewYear}`
                   : `${customStart.getDate()}/${customStart.getMonth()+1} — ${customEnd.getDate()}/${customEnd.getMonth()+1}/${customEnd.getFullYear()}`}
               </Text>
               <TouchableOpacity onPress={() => setShowTxDetail(false)}>
@@ -754,14 +787,17 @@ export default function StatsScreen() {
 
 const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext').useTheme>['colors']) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  orb1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.18)', top: -60, right: -40 },
+  orb2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.12)', top: 30, right: 80 },
+  orb3: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(180,120,0,0.12)', bottom: 20, left: -20 },
   header: { backgroundColor: colors.surface, paddingTop: 56, paddingBottom: 24, paddingHorizontal: 24, overflow: 'hidden', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   headerTitle: { fontSize: 24, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 4 },
   headerSub: { fontSize: 13, color: colors.textSecondary, fontFamily: Fonts.medium, marginBottom: 16 },
   filterRow: { flexDirection: 'row', gap: 8 },
   filterTab: { flex: 1, backgroundColor: colors.inputBg, borderRadius: 10, paddingVertical: 8, alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder },
-  filterTabActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  filterTabActive: { backgroundColor: colors.textPrimary, borderColor: colors.textPrimary },
   filterTabText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
-  filterTabTextActive: { color: colors.accentText },
+  filterTabTextActive: { color: '#fff' },
 
   /* ── NGÀY ── */
   dayBody: { backgroundColor: colors.bg, padding: 20 },
@@ -772,8 +808,8 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   dayFill: { height: 6, borderRadius: 99 },
   dayRemain: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
   dayRemainBtn: { alignSelf: 'flex-start', marginTop: 2 },
-  dayRemainBtnActive: { backgroundColor: colors.accentBg, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
-  dayRemainActive: { color: colors.accent },
+  dayRemainBtnActive: { backgroundColor: 'rgba(92,61,0,0.08)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  dayRemainActive: { color: colors.textPrimary },
   dayRemainLink: { color: colors.textPrimary },
   dayCompareCard: { backgroundColor: colors.card, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 4 },
   dayCompareText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 3 },
@@ -802,13 +838,45 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   peakBadge: { backgroundColor: colors.dangerBg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
   peakBadgeText: { fontSize: 10, fontFamily: Fonts.bold, color: colors.danger },
+  weekNav: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  weekNavBtn: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  weekNavArrow: { fontSize: 22, fontFamily: Fonts.bold, color: colors.textPrimary, lineHeight: 26 },
+  weekNavLabel: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textMuted, minWidth: 64, textAlign: 'center' },
+
+  monthNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 8 },
+
+  /* ── SHARED HERO CARD (dùng chung 4 tab) ── */
+  periodBody: { backgroundColor: colors.bg, padding: 20 },
+  heroCard: {
+    backgroundColor: colors.card, borderRadius: 20, padding: 20, marginBottom: 12,
+    borderWidth: 1, borderColor: colors.cardBorder,
+    shadowColor: colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 4,
+  },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  heroNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginBottom: 6 },
+  heroNavInline: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  periodLbl: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  heroAmt: { fontSize: 34, fontFamily: Fonts.extraBold, color: colors.textPrimary, letterSpacing: -1.5, marginBottom: 14 },
+  heroMetrics: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  heroMetricItem: { flex: 1, alignItems: 'center', gap: 3 },
+  heroMetricVal: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.textPrimary },
+  heroMetricLbl: { fontSize: 10, fontFamily: Fonts.medium, color: colors.textMuted, textAlign: 'center' },
+  heroMetricDiv: { width: 1, height: 32, backgroundColor: colors.divider },
+  heroTrack: { backgroundColor: colors.divider, borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 10 },
+  heroFill: { height: 6, borderRadius: 99 },
+  txBtn: { alignSelf: 'flex-start', marginTop: 2 },
+  txBtnActive: { backgroundColor: 'rgba(92,61,0,0.08)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  txBtnText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textMuted },
+  txBtnTextActive: { color: colors.textPrimary },
+  customMetaRow: { marginBottom: 10 },
+  customMetaText: { fontSize: 13, fontFamily: Fonts.medium, color: colors.textMuted },
 
   /* ── THÁNG ── */
   monthBody: { backgroundColor: colors.bg, padding: 20 },
 
   monthScoreCard: {
     borderRadius: 20, padding: 20, marginBottom: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     overflow: 'hidden',
     borderWidth: 1, borderColor: colors.cardBorder,
     shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 },
@@ -863,7 +931,7 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   /* ── Modal chi tiết ── */
   modalContainer: { flex: 1, justifyContent: 'flex-end' },
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(10,4,30,0.6)' },
-  modalSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingTop: 12, paddingHorizontal: 20, maxHeight: '75%', borderWidth: 1, borderColor: colors.cardBorder },
+  modalSheet: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', paddingTop: 12, paddingHorizontal: 20, maxHeight: '75%', borderWidth: 1, borderColor: colors.cardBorder },
   modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: colors.accentBorder, alignSelf: 'center', marginBottom: 16 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { fontSize: 17, fontFamily: Fonts.extraBold, color: colors.textPrimary },
@@ -901,15 +969,20 @@ const makeStyles = (colors: ReturnType<typeof import('../../context/ThemeContext
   customSummaryCount: { fontSize: 13, fontFamily: Fonts.medium, color: colors.textMuted },
 
   dateModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center' },
-  dateModalSheet: { backgroundColor: colors.surface, borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  dateModalSheet: { backgroundColor: colors.card, borderRadius: 24, padding: 20, width: '85%', alignItems: 'center', borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.shadow, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
   dateModalTitle: { fontSize: 16, fontFamily: Fonts.extraBold, color: colors.textPrimary, marginBottom: 8 },
   dateModalBtn: { marginTop: 12, backgroundColor: colors.accent, borderRadius: 14, paddingHorizontal: 40, paddingVertical: 12 },
   dateModalBtnText: { fontSize: 15, fontFamily: Fonts.extraBold, color: colors.accentText },
 
   presetRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  presetChip: { backgroundColor: colors.accentBg, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 },
-  presetChipText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.accent },
+  presetChip: { backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: colors.cardBorder },
+  presetChipText: { fontSize: 13, fontFamily: Fonts.bold, color: colors.textPrimary },
   rangeModalSectionLbl: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  editRangeBtn: { backgroundColor: colors.accentBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
-  editRangeBtnText: { fontSize: 11, fontFamily: Fonts.bold, color: colors.accent },
+  editRangeBtn: { backgroundColor: 'rgba(92,61,0,0.08)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  editRangeBtnText: { fontSize: 11, fontFamily: Fonts.bold, color: colors.textPrimary },
+
+  trendToggle: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 16, padding: 16, marginBottom: 8, borderWidth: 1, borderColor: colors.cardBorder },
+  trendToggleTitle: { fontSize: 14, fontFamily: Fonts.bold, color: colors.textPrimary, marginBottom: 2 },
+  trendToggleSub: { fontSize: 12, fontFamily: Fonts.medium },
+  trendToggleArrow: { fontSize: 12, color: colors.textMuted, fontFamily: Fonts.bold },
 });
